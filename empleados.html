@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Calendar - View</title>
+    
+    <!-- FullCalendar CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet" />
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- SheetJS (XLSX) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <!-- FullCalendar JS -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+    
+</head>
+<body class="dark-theme">
+    <div class="app-container">
+        
+        <header class="header">
+            <div class="header-left">
+                <h1>Apartment Bookings</h1>
+                <p class="subtitle">Drag & Drop your .ods file to view reservations</p>
+                <div class="header-actions">
+                    <button id="import-notes-btn" class="action-btn">Import Notes</button>
+                    <input type="file" id="import-file" accept=".json" hidden>
+                </div>
+            </div>
+            
+            <div class="upload-zone" id="drop-zone">
+                <div class="upload-content">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <span>Click or drag .ods file here</span>
+                    <input type="file" id="file-input" accept=".ods, .xlsx, .xls" hidden>
+                </div>
+            </div>
+        </header>
+
+        <div class="calendar-wrapper">
+            <div id="calendar"></div>
+        </div>
+        
+    </div>
+
+    <!-- Custom Tooltip (Restricted View without Finances) -->
+    <div id="booking-tooltip" class="custom-tooltip hidden">
+        <div class="tooltip-header">
+            <span class="apt-badge" id="tt-apt">Apartamento</span>
+            <div class="tt-dates" id="tt-dates">12 Oct - 15 Oct</div>
+        </div>
+        <div class="tooltip-body">
+            <div class="tt-row">
+                <span class="tt-label">Broker:</span>
+                <span class="tt-value" id="tt-broker">-</span>
+            </div>
+            <div class="tt-row">
+                <span class="tt-label">Personas (Pax):</span>
+                <span class="tt-value" id="tt-pax">-</span>
+            </div>
+            <div class="tt-divider"></div>
+            <div class="tt-row tt-notes-row">
+                <span class="tt-label">Notas:</span>
+                <p class="tt-notes" id="tt-notas">-</p>
+            </div>
+            <div class="tt-divider"></div>
+            <div class="tt-row tt-notes-row">
+                <span class="tt-label">Notas del admin:</span>
+                <p class="tt-notes" id="tt-local-note-display">-</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom JS -->
+    <script src="app.js"></script>
+</body>
+</html>

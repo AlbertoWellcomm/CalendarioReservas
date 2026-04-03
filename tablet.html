@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calendario reservas</title>
+    <title>Calendario reservas — Tablet Edition</title>
 
     <!-- FullCalendar CSS -->
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet" />
@@ -17,21 +17,30 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="style.css">
 
-    <!-- LocalForage (IndexedDB Wrapper) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
-
     <!-- SheetJS (XLSX) -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
-    <!-- FullCalendar JS -->
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+    <!-- Firebase SDKs (compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
 
     <!-- Session Check -->
     <script>
-        if (sessionStorage.getItem('auth') !== 'true') {
-            window.location.href = 'index.html';
-        }
+        if (sessionStorage.getItem('auth') !== 'true') window.location.href = 'index.html';
+        window.PAGE_MODE = 'tablet';
+        
+        firebase.auth().onAuthStateChanged(user => {
+            if (!user) {
+                sessionStorage.removeItem('auth');
+                window.location.href = 'index.html';
+            }
+        });
     </script>
+
+    <!-- FullCalendar JS -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 </head>
 
 <body class="dark-theme">
@@ -39,30 +48,34 @@
 
         <header class="header">
             <div class="header-left">
-                <h1>Reservas (Tablet Edition)</h1>
-                <p class="subtitle">Pulsa "Cambiar Archivo" para enlazar tu OneDrive u ODS</p>
+                <h1>Reservas (Tablet)</h1>
+                <p class="subtitle">Datos en tiempo real · Pulsa "Importar" para subir un .ods</p>
                 <div class="header-actions">
+                    <button id="add-booking-btn" class="action-btn" style="background:var(--accent);color:#fff;border-color:var(--accent);">➕ Nueva Reserva</button>
                     <button id="export-notes-btn" class="action-btn">Exporta Notas</button>
                     <button id="import-notes-btn" class="action-btn">Importa Notas</button>
-                    <button id="change-file-btn" class="action-btn" style="background:#58a6ff; color:#0d1117;">Cambiar Archivo</button>
                     <button id="registry-btn" class="action-btn">🧾 Ver Recibos</button>
                     <button id="config-btn" class="action-btn">⚙️ Configuración</button>
-                    <button id="logout-btn" class="action-btn" style="background: transparent; color: #ff7b72; border-color: #ff7b72;" onclick="sessionStorage.removeItem('auth'); window.location.href='index.html'">🚪 Salir</button>
+                    <button class="action-btn" style="background:transparent;color:#ff7b72;border-color:#ff7b72;" onclick="sessionStorage.removeItem('auth');window.location.href='index.html'">🚪 Salir</button>
                     <input type="file" id="import-file" accept=".json" hidden>
                 </div>
             </div>
 
-            <div class="upload-zone" id="drop-zone">
-                <div class="upload-content">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="17 8 12 3 7 8"></polyline>
-                        <line x1="12" y1="3" x2="12" y2="15"></line>
-                    </svg>
-                    <span>Selecciona o arrastra tu file .ods</span>
-                    <input type="file" id="file-input" accept=".ods, .xlsx, .xls" hidden>
+            <!-- Apartment Legend (neatly for tablet) -->
+            <div class="apt-legend">
+                <div class="legend-item">
+                    <span class="legend-dot" style="background:var(--color-apt-1)"></span>
+                    <span>Loft</span>
                 </div>
+                <div class="legend-item">
+                    <span class="legend-dot" style="background:var(--color-apt-2)"></span>
+                    <span>1st floor</span>
+                </div>
+            </div>
+
+            <!-- Hide drop zone unless needed, or just make it subtle -->
+            <div class="upload-zone" id="drop-zone" style="display:none;">
+                <input type="file" id="file-input" accept=".ods,.xlsx,.xls" hidden>
             </div>
         </header>
 
@@ -77,177 +90,163 @@
         <div class="tooltip-header">
             <span class="apt-badge" id="tt-apt">Apartamento</span>
             <div class="tt-dates" id="tt-dates">12 Oct - 15 Oct</div>
+            <!-- Added X for touch users to close -->
+            <button class="modal-close-x" style="margin-left:auto;" onclick="document.getElementById('booking-tooltip').classList.add('hidden')">✕</button>
         </div>
         <div class="tooltip-body">
-            <div class="tt-row">
-                <span class="tt-label">Broker:</span>
-                <span class="tt-value" id="tt-broker">-</span>
-            </div>
-            <div class="tt-row">
-                <span class="tt-label">Personas (Pax):</span>
-                <span class="tt-value" id="tt-pax">-</span>
-            </div>
-            <div class="tt-row">
-                <span class="tt-label">Bruto:</span>
-                <span class="tt-value" id="tt-bruto">-</span>
-            </div>
-            <div class="tt-row">
-                <span class="tt-label">Comisiones:</span>
-                <span class="tt-value" id="tt-comisiones">-</span>
-            </div>
-            <div class="tt-row highlight-row">
-                <span class="tt-label">Neto:</span>
-                <span class="tt-value tt-neto" id="tt-neto">-</span>
-            </div>
+            <div class="tt-row"><span class="tt-label">Broker:</span><span class="tt-value" id="tt-broker">-</span></div>
+            <div class="tt-row"><span class="tt-label">Pax:</span><span class="tt-value" id="tt-pax">-</span></div>
+            <div class="tt-row"><span class="tt-label">Bruto:</span><span class="tt-value" id="tt-bruto">-</span></div>
+            <div class="tt-row"><span class="tt-label">Comisiones:</span><span class="tt-value" id="tt-comisiones">-</span></div>
+            <div class="tt-row highlight-row"><span class="tt-label">Neto:</span><span class="tt-value tt-neto" id="tt-neto">-</span></div>
             <div class="tt-divider"></div>
-            <div class="tt-row tt-notes-row">
-                <span class="tt-label">Notas:</span>
-                <p class="tt-notes" id="tt-notas">-</p>
-            </div>
-            <div class="tt-divider"></div>
-            <div class="tt-row tt-notes-row">
-                <span class="tt-label">Mi nota:</span>
-                <textarea id="tt-local-note" class="local-note-input" placeholder="Escribe una nota..."></textarea>
-                <button id="tt-save-note" class="save-note-btn">Guardar nota</button>
-            </div>
+            <div class="tt-row tt-notes-row"><span class="tt-label">Notas:</span><p class="tt-notes" id="tt-notas">-</p></div>
             <div class="tt-divider"></div>
             <div class="tt-row" style="justify-content:center;">
                 <button id="tt-print-receipt" class="print-receipt-btn">🖨️ Recibo Tasa Turística</button>
             </div>
+            <div class="tt-divider"></div>
+            <!-- Admin/Tablet CRUD buttons -->
+            <div class="tt-row tt-crud-row">
+                <button id="tt-edit-booking" class="tt-crud-btn tt-edit-btn">✏️ Editar</button>
+                <button id="tt-delete-booking" class="tt-crud-btn tt-delete-btn">🗑️ Eliminar</button>
+            </div>
         </div>
     </div>
 
-    <!-- Receipt Modal -->
+    <!-- Booking Form Modal (Add / Edit) -->
+    <div id="booking-modal" class="receipt-modal-overlay hidden">
+        <div class="booking-modal-box">
+            <div class="booking-modal-header">
+                <h2 id="booking-modal-title">Reserva</h2>
+                <button class="modal-close-x" onclick="document.getElementById('booking-modal').classList.add('hidden')">✕</button>
+            </div>
+            <form id="booking-form" autocomplete="off">
+                <div class="booking-form-grid">
+                    <div class="bf-field bf-full">
+                        <label class="bf-label" for="bf-apt">Alojamiento *</label>
+                        <select id="bf-apt" class="bf-input" required>
+                            <option value="">Seleccionar…</option>
+                            <option value="Loft">Loft</option>
+                            <option value="1st floor">1st floor</option>
+                        </select>
+                    </div>
+                    <div class="bf-field">
+                        <label class="bf-label" for="bf-entrada">Entrada *</label>
+                        <input type="date" id="bf-entrada" class="bf-input" required>
+                    </div>
+                    <div class="bf-field">
+                        <label class="bf-label" for="bf-salida">Salida *</label>
+                        <input type="date" id="bf-salida" class="bf-input" required>
+                    </div>
+                    <div class="bf-field">
+                        <label class="bf-label" for="bf-broker">Canal</label>
+                        <input type="text" id="bf-broker" class="bf-input">
+                    </div>
+                    <div class="bf-field">
+                        <label class="bf-label" for="bf-pax">Pax</label>
+                        <input type="number" id="bf-pax" class="bf-input" min="1" value="1">
+                    </div>
+                    <div class="bf-field">
+                        <label class="bf-label" for="bf-bruto">Bruto (€)</label>
+                        <input type="number" id="bf-bruto" class="bf-input" step="0.01">
+                    </div>
+                    <div class="bf-field">
+                        <label class="bf-label" for="bf-comisiones">Comisiones (€)</label>
+                        <input type="number" id="bf-comisiones" class="bf-input" step="0.01">
+                    </div>
+                    <div class="bf-field bf-full">
+                        <label class="bf-label" for="bf-neto">Neto (€)</label>
+                        <input type="number" id="bf-neto" class="bf-input bf-neto-field" step="0.01">
+                    </div>
+                    <div class="bf-field bf-full">
+                        <label class="bf-label" for="bf-notas">Notas</label>
+                        <textarea id="bf-notas" class="bf-input bf-textarea" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="booking-form-actions">
+                    <button type="submit" class="bf-submit-btn">💾 Guardar</button>
+                    <button type="button" id="booking-modal-cancel-btn" class="bf-cancel-btn">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Receipt, Config, Registry Modals (Shared with admin) -->
+    <!-- (Re-using existing HTML structure from admin.html for consistency) -->
     <div id="receipt-modal" class="receipt-modal-overlay hidden">
         <div class="receipt-modal-box">
             <div id="receipt-printable">
                 <div class="receipt-header">
-                    <div class="receipt-logo-container">
-                        <img src="logo.png" alt="Logo" class="receipt-logo">
-                    </div>
+                    <div class="receipt-logo-container"><img src="logo.png" alt="Logo" class="receipt-logo"></div>
                     <div class="receipt-header-text">
-                        <h2 id="r-title-txt">Recibo Tasa Turística</h2>
+                        <h2 id="r-title-txt">Recibo</h2>
                         <div class="receipt-id-box">Nº <span id="r-id">-</span></div>
                     </div>
                 </div>
                 <div class="receipt-body">
-                    <div class="receipt-row">
-                        <span class="r-label" id="r-lbl-apt">Apartamento:</span>
-                        <span class="r-value" id="r-apt">-</span>
-                    </div>
-                    <div class="receipt-row">
-                        <span class="r-label" id="r-lbl-checkin">Check-in:</span>
-                        <span class="r-value" id="r-checkin">-</span>
-                    </div>
-                    <div class="receipt-row">
-                        <span class="r-label" id="r-lbl-checkout">Check-out:</span>
-                        <span class="r-value" id="r-checkout">-</span>
-                    </div>
-                    <div class="receipt-row">
-                        <span class="r-label" id="r-lbl-pax">Nº de personas (>16 años):</span>
-                        <input type="number" id="r-pax" class="r-value-input" min="0" value="0">
-                    </div>
-                    <div class="receipt-row">
-                        <span class="r-label" id="r-lbl-nights">Noches (máx. 7):</span>
-                        <span class="r-value" id="r-nights">-</span>
-                    </div>
-                    <div class="receipt-row">
-                        <span class="r-label" id="r-lbl-rate">Tarifa por persona/noche:</span>
-                        <span class="r-value" id="r-rate-txt">1,75 €</span>
-                    </div>
+                    <div class="receipt-row"><span class="r-label" id="r-lbl-apt">Apt:</span><span class="r-value" id="r-apt">-</span></div>
+                    <div class="receipt-row"><span class="r-label" id="r-lbl-checkin">In:</span><span class="r-value" id="r-checkin">-</span></div>
+                    <div class="receipt-row"><span class="r-label" id="r-lbl-checkout">Out:</span><span class="r-value" id="r-checkout">-</span></div>
+                    <div class="receipt-row"><span class="r-label" id="r-lbl-pax">Pax (>16):</span><input type="number" id="r-pax" class="r-value-input" min="0" value="0"></div>
+                    <div class="receipt-row"><span class="r-label" id="r-lbl-nights">Noches:</span><span class="r-value" id="r-nights">-</span></div>
+                    <div class="receipt-row"><span class="r-label" id="r-lbl-rate">Tarifa:</span><span class="r-value" id="r-rate-txt">1,75 €</span></div>
                     <div class="receipt-divider"></div>
-                    <div class="receipt-row receipt-total-row">
-                        <span class="r-label" id="r-lbl-total">TOTAL:</span>
-                        <span class="r-value r-total" id="r-total">-</span>
-                    </div>
+                    <div class="receipt-row receipt-total-row"><span class="r-label" id="r-lbl-total">TOTAL:</span><span class="r-value r-total" id="r-total">-</span></div>
                 </div>
-                <div class="receipt-footer">
-                    <p id="r-footer-txt">Gracias por su visita.</p>
-                </div>
+                <div class="receipt-footer"><p id="r-footer-txt">Gracias.</p></div>
             </div>
             <div class="receipt-actions no-print">
-                <select id="receipt-lang-select" class="action-btn" style="flex: 0.5;">
-                    <option value="es">🇪🇸 ES</option>
-                    <option value="en">🇬🇧 EN</option>
-                </select>
+                <select id="receipt-lang-select" class="action-btn" style="flex:0.5"><option value="es">ES</option><option value="en">EN</option></select>
                 <button id="receipt-print-btn" class="action-btn">🖨️ <span id="r-btn-print">Imprimir</span></button>
                 <button id="receipt-close-btn" class="action-btn secondary-btn"><span id="r-btn-close">Cerrar</span></button>
             </div>
         </div>
     </div>
 
-    <!-- Config Modal -->
+    <!-- Registry & Config (simpler for tablet but fully functional) -->
     <div id="config-modal" class="receipt-modal-overlay hidden">
-        <div class="receipt-modal-box" style="max-width: 400px; padding-bottom: 0;">
-            <div id="config-printable" style="padding: 2rem 2.4rem 1.5rem;">
-                <div class="receipt-header">
-                    <h2 style="font-size: 1.25rem;">Configuración Tasa</h2>
-                </div>
+        <div class="receipt-modal-box" style="max-width:400px;padding-bottom:0">
+            <div style="padding:1.5rem">
+                <div class="receipt-header"><h2>Tasa</h2></div>
                 <div class="receipt-body">
-                    <div class="receipt-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
-                        <label class="r-label" for="config-tax-rate">Tarifa Tasa Turística (€/noche):</label>
-                        <input type="number" id="config-tax-rate" class="local-note-input" step="0.01" min="0" value="1.75" style="min-height: auto;">
-                    </div>
+                    <label class="r-label" for="config-tax-rate">Tarifa (€):</label>
+                    <input type="number" id="config-tax-rate" class="bf-input" step="0.01" min="0" value="1.75">
                     <div class="receipt-divider"></div>
-                    <div class="receipt-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
-                        <p class="r-label" style="font-size: 0.9rem;">Reinicia el contador de recibos para el año actual. El próximo recibo será el número 001.</p>
-                        <button id="config-reset-btn" class="action-btn" style="width: 100%; border-color: #ff7b72; color: #ff7b72;">Reset Contador (Año actual)</button>
-                    </div>
+                    <button id="config-reset-btn" class="action-btn" style="width:100%;color:#ff7b72">Reset Contador</button>
                 </div>
             </div>
             <div class="receipt-actions no-print">
                 <button id="config-save-btn" class="action-btn">Guardar</button>
-                <button id="config-close-btn" class="action-btn secondary-btn">Cancelar</button>
+                <button id="config-close-btn" class="action-btn secondary-btn">Cerrar</button>
             </div>
         </div>
     </div>
 
-    <!-- Registry Modal -->
     <div id="registry-modal" class="receipt-modal-overlay hidden">
-        <div class="receipt-modal-box" style="max-width: 800px; padding: 2rem; display: flex; flex-direction: column; max-height: 90vh;">
-            <div class="receipt-header" style="flex-shrink: 0; align-items: center; border-bottom: none; margin-bottom: 0;">
-                <h2 style="font-size: 1.5rem;">Registro de Recibos Emitidos</h2>
-                <div style="display: flex; gap: 10px;">
-                    <button id="registry-export-btn" class="action-btn" style="background: var(--accent); color: #fff;">📥 Exportar CSV</button>
-                    <button id="registry-close-btn" class="action-btn secondary-btn">Cerrar</button>
+        <div class="receipt-modal-box" style="max-width:800px;padding:2rem;display:flex;flex-direction:column;max-height:90vh">
+            <div class="receipt-header" style="flex-shrink:0;align-items:center;border-bottom:none">
+                <h2>Registro</h2>
+                <div style="display:flex;gap:10px">
+                    <button id="registry-export-btn" class="action-btn">📥 CSV</button>
+                    <button id="registry-close-btn" class="action-btn secondary-btn">X</button>
                 </div>
             </div>
-            
-            <div class="registry-summary" style="display: flex; gap: 20px; margin: 1.5rem 0; flex-shrink: 0;">
-                <div class="summary-card" style="flex: 1; background: #f0f4ff; padding: 1.5rem; border-radius: 12px; border: 1px solid #d1e0ff;">
-                    <h3 style="color: #2563eb; font-size: 1rem; margin-bottom: 8px;">Periodo 1 (Abril - Octubre)</h3>
-                    <p style="font-size: 1.8rem; font-weight: 800; color: #1a1a2e;" id="reg-total-p1">0,00 €</p>
-                    <p style="font-size: 0.85rem; color: #555;" id="reg-count-p1">0 recibos</p>
-                </div>
-                <div class="summary-card" style="flex: 1; background: #fff4ec; padding: 1.5rem; border-radius: 12px; border: 1px solid #ffdecc;">
-                    <h3 style="color: #ea580c; font-size: 1rem; margin-bottom: 8px;">Periodo 2 (Noviembre - Marzo)</h3>
-                    <p style="font-size: 1.8rem; font-weight: 800; color: #1a1a2e;" id="reg-total-p2">0,00 €</p>
-                    <p style="font-size: 0.85rem; color: #555;" id="reg-count-p2">0 recibos</p>
-                </div>
+            <div class="registry-summary" style="display:flex;gap:20px;margin:1.5rem 0">
+                <div style="flex:1;background:#f0f4ff;padding:1rem">P1: <span id="reg-total-p1">0,00 €</span></div>
+                <div style="flex:1;background:#fff4ec;padding:1rem">P2: <span id="reg-total-p2">0,00 €</span></div>
             </div>
-
-            <div style="flex-grow: 1; overflow-y: auto; background: #f7f8fa; border: 1px solid #e0e0e0; border-radius: 8px;">
-                <table class="registry-table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; color: #1a1a2e;">
-                    <thead style="position: sticky; top: 0; background: #e0e0ed; z-index: 1;">
-                        <tr>
-                            <th style="padding: 10px; border-bottom: 2px solid #ccc;">ID</th>
-                            <th style="padding: 10px; border-bottom: 2px solid #ccc;">Fecha Check-in</th>
-                            <th style="padding: 10px; border-bottom: 2px solid #ccc;">Alojamiento</th>
-                            <th style="padding: 10px; border-bottom: 2px solid #ccc;">Pax</th>
-                            <th style="padding: 10px; border-bottom: 2px solid #ccc;">Noches</th>
-                            <th style="padding: 10px; border-bottom: 2px solid #ccc;">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody id="registry-table-body">
-                        <!-- rows will be injected here -->
-                    </tbody>
+            <div style="flex-grow:1;overflow-y:auto">
+                <table style="width:100%;border-collapse:collapse;text-align:left">
+                    <thead><tr><th>ID</th><th>In</th><th>Apt</th><th>Pax</th><th>Noch</th><th>Total</th></tr></thead>
+                    <tbody id="registry-table-body"></tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <!-- Custom JS for Tablet -->
-    <script src="app-tablet.js?v=1.1"></script>
+    <!-- Custom JS (Universal) -->
+    <script src="app.js?v=2.1"></script>
 </body>
 
 </html>

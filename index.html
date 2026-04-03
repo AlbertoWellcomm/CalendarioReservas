@@ -7,6 +7,11 @@
     <!-- Use Google Fonts (from style.css) -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <!-- Firebase SDKs (compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="firebase-config.js"></script>
+
     <style>
         body {
             display: flex;
@@ -97,7 +102,8 @@
     <div id="pwd-modal" class="receipt-modal-overlay hidden">
         <div class="portal-modal-box">
             <h2 style="margin-bottom: 1rem; font-size: 1.3rem;">Acceso Restringido</h2>
-            <p style="margin-bottom: 1.5rem; color: #8b949e; font-size: 0.9rem;">Introduce la contraseña para acceder.</p>
+            <p style="margin-bottom: 1.5rem; color: #8b949e; font-size: 0.9rem;">Introduce tus credenciales de Firebase para acceder.</p>
+            <input type="email" id="email-input" placeholder="Email (ej: admin@calres.com)" class="local-note-input" style="width: 100%; box-sizing: border-box; background: var(--bg); color: white; border: 1px solid var(--border); padding: 10px; border-radius: 4px; margin-bottom: 12px;">
             <input type="password" id="pwd-input" placeholder="Contraseña" class="local-note-input" style="width: 100%; box-sizing: border-box; background: var(--bg); color: white; border: 1px solid var(--border); padding: 10px; border-radius: 4px;">
             <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
                 <button id="pwd-submit-btn" class="action-btn" style="flex: 1; background: var(--accent); color: white;">Entrar</button>
@@ -108,6 +114,7 @@
 
     <script>
         const pwdModal = document.getElementById('pwd-modal');
+        const emailInput = document.getElementById('email-input');
         const pwdInput = document.getElementById('pwd-input');
         const pwdSubmitBtn = document.getElementById('pwd-submit-btn');
         const pwdCloseBtn = document.getElementById('pwd-close-btn');
@@ -116,37 +123,59 @@
 
         function requestPassword(pageUrl) {
             // See if they are already authenticated this session
-            if (sessionStorage.getItem('auth') === 'true') {
+            if (firebase.auth().currentUser) {
+                sessionStorage.setItem('auth', 'true');
                 window.location.href = pageUrl;
                 return;
             }
             
             targetPage = pageUrl;
+            emailInput.value = '';
             pwdInput.value = '';
             pwdModal.classList.remove('hidden');
-            pwdInput.focus();
+            emailInput.focus();
         }
 
-        function checkPassword() {
-            const entered = pwdInput.value;
-            const GLOBAL_PWD = 'Flashback';
+        async function checkPassword() {
+            const email = emailInput.value.trim();
+            const password = pwdInput.value;
             
-            if (entered === GLOBAL_PWD) {
+            if (!email || !password) {
+                alert('Introduce el email y la contraseña.');
+                return;
+            }
+
+            try {
+                pwdSubmitBtn.textContent = 'Iniciando sesión...';
+                pwdSubmitBtn.disabled = true;
+                
+                await firebase.auth().signInWithEmailAndPassword(email, password);
+                
                 sessionStorage.setItem('auth', 'true');
                 window.location.href = targetPage;
-            } else {
-                alert('Contraseña incorrecta.');
-                pwdInput.value = '';
-                pwdInput.focus();
+            } catch (err) {
+                console.error(err);
+                alert('Error al iniciar sesión: ' + err.message);
+            } finally {
+                pwdSubmitBtn.textContent = 'Entrar';
+                pwdSubmitBtn.disabled = false;
             }
         }
 
         pwdSubmitBtn.addEventListener('click', checkPassword);
-        pwdInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') checkPassword();
+        [emailInput, pwdInput].forEach(el => {
+            el.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') checkPassword();
+            });
         });
         pwdCloseBtn.addEventListener('click', () => {
             pwdModal.classList.add('hidden');
+        });
+
+        // Persist session check
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) sessionStorage.setItem('auth', 'true');
+            else sessionStorage.removeItem('auth');
         });
     </script>
 </body>

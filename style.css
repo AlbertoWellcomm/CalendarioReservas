@@ -584,3 +584,226 @@ body {
     }
 }
 
+/* ============================
+   CSS VARS bridge for index.html portal
+   ============================ */
+:root {
+    --bg:       #0d1117;
+    --surface:  #161b22;
+    --text-color: #e6edf3;
+    --border:   #30363d;
+    --radius:   12px;
+}
+
+/* ============================
+   BOOKING FORM MODAL
+   ============================ */
+.booking-modal-box {
+    background: #161b22;
+    color: #e6edf3;
+    border: 1px solid #30363d;
+    border-radius: 16px;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.7);
+    width: 95%;
+    max-width: 560px;
+    overflow: hidden;
+    font-family: var(--font-family);
+    animation: modal-in 0.25s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+@keyframes modal-in {
+    from { opacity:0; transform:scale(0.93) translateY(16px); }
+    to   { opacity:1; transform:scale(1)    translateY(0);    }
+}
+
+.booking-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem 1rem;
+    border-bottom: 1px solid #30363d;
+}
+
+.booking-modal-header h2 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    background: linear-gradient(to right, #58a6ff, #a371f7);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 0;
+}
+
+.modal-close-x {
+    background: transparent;
+    border: none;
+    color: #8b949e;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background 0.2s, color 0.2s;
+}
+.modal-close-x:hover { background: #21262d; color: #e6edf3; }
+
+.booking-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    padding: 1.5rem 2rem;
+}
+
+.bf-field { display: flex; flex-direction: column; gap: 5px; }
+.bf-full  { grid-column: 1 / -1; }
+
+.bf-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.bf-auto-hint {
+    display: inline-block;
+    background: rgba(163,113,247,0.15);
+    color: #a371f7;
+    font-size: 0.65rem;
+    padding: 1px 6px;
+    border-radius: 999px;
+    vertical-align: middle;
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 500;
+}
+
+.bf-input {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    color: #e6edf3;
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+    width: 100%;
+    box-sizing: border-box;
+}
+.bf-input:focus {
+    border-color: #58a6ff;
+    box-shadow: 0 0 0 3px rgba(88,166,255,0.15);
+}
+.bf-input option { background: #161b22; }
+
+.bf-textarea { resize: vertical; min-height: 75px; }
+
+.bf-neto-field { border-color: rgba(163,113,247,0.4); }
+.bf-neto-field:focus {
+    border-color: #a371f7;
+    box-shadow: 0 0 0 3px rgba(163,113,247,0.15);
+}
+
+.booking-form-actions {
+    display: flex;
+    gap: 12px;
+    padding: 1rem 2rem 1.5rem;
+    border-top: 1px solid #30363d;
+}
+
+.bf-submit-btn {
+    flex: 1;
+    background: linear-gradient(135deg, #58a6ff, #a371f7);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 11px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s;
+    letter-spacing: 0.3px;
+}
+.bf-submit-btn:hover  { opacity: 0.88; transform: translateY(-1px); }
+.bf-submit-btn:active { transform: translateY(0); }
+
+.bf-cancel-btn {
+    flex: 0 0 auto;
+    background: #21262d;
+    color: #8b949e;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 11px 20px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.bf-cancel-btn:hover { background: #30363d; color: #e6edf3; }
+
+/* ============================
+   TOOLTIP CRUD BUTTONS
+   ============================ */
+.tt-crud-row {
+    justify-content: stretch;
+    gap: 8px;
+}
+
+.tt-crud-btn {
+    flex: 1;
+    padding: 7px 0;
+    border-radius: 7px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.tt-edit-btn {
+    background: rgba(88,166,255,0.12);
+    color: #58a6ff;
+    border-color: rgba(88,166,255,0.25);
+}
+.tt-edit-btn:hover {
+    background: rgba(88,166,255,0.25);
+    border-color: #58a6ff;
+}
+
+.tt-delete-btn {
+    background: rgba(255,123,114,0.12);
+    color: #ff7b72;
+    border-color: rgba(255,123,114,0.25);
+}
+.tt-delete-btn:hover {
+    background: rgba(255,123,114,0.25);
+    border-color: #ff7b72;
+}
+
+/* ============================
+   APARTMENT LEGEND (empleados)
+   ============================ */
+.apt-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-end;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.legend-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    flex-shrink: 0;
+}

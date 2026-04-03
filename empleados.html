@@ -1,50 +1,66 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Booking Calendar - View</title>
-    
+    <title>Calendario Reservas — Vista</title>
+
     <!-- FullCalendar CSS -->
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet" />
-    
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
+
     <!-- Custom CSS -->
     <link rel="stylesheet" href="style.css">
-    
-    <!-- SheetJS (XLSX) -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    
+
+    <!-- Firebase SDKs (compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+
+    <!-- Session Check -->
+    <script>
+        if (sessionStorage.getItem('auth') !== 'true') window.location.href = 'index.html';
+        window.PAGE_MODE = 'readonly';
+        
+        firebase.auth().onAuthStateChanged(user => {
+            if (!user) {
+                sessionStorage.removeItem('auth');
+                window.location.href = 'index.html';
+            }
+        });
+    </script>
+
     <!-- FullCalendar JS -->
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
-    
 </head>
+
 <body class="dark-theme">
     <div class="app-container">
-        
+
         <header class="header">
             <div class="header-left">
                 <h1>Apartment Bookings</h1>
-                <p class="subtitle">Drag & Drop your .ods file to view reservations</p>
+                <p class="subtitle">📡 Datos en tiempo real · Actualización automática</p>
                 <div class="header-actions">
                     <button id="import-notes-btn" class="action-btn">Import Notes</button>
                     <input type="file" id="import-file" accept=".json" hidden>
                 </div>
             </div>
-            
-            <div class="upload-zone" id="drop-zone">
-                <div class="upload-content">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="17 8 12 3 7 8"></polyline>
-                        <line x1="12" y1="3" x2="12" y2="15"></line>
-                    </svg>
-                    <span>Click or drag .ods file here</span>
-                    <input type="file" id="file-input" accept=".ods, .xlsx, .xls" hidden>
+
+            <!-- Legend -->
+            <div class="apt-legend">
+                <div class="legend-item">
+                    <span class="legend-dot" style="background:var(--color-apt-1)"></span>
+                    <span>Loft</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot" style="background:var(--color-apt-2)"></span>
+                    <span>1st floor</span>
                 </div>
             </div>
         </header>
@@ -52,10 +68,10 @@
         <div class="calendar-wrapper">
             <div id="calendar"></div>
         </div>
-        
+
     </div>
 
-    <!-- Custom Tooltip (Restricted View without Finances) -->
+    <!-- Tooltip (restricted — no financial data) -->
     <div id="booking-tooltip" class="custom-tooltip hidden">
         <div class="tooltip-header">
             <span class="apt-badge" id="tt-apt">Apartamento</span>
@@ -84,6 +100,6 @@
     </div>
 
     <!-- Custom JS -->
-    <script src="app.js"></script>
+    <script src="app.js?v=2.0"></script>
 </body>
 </html>

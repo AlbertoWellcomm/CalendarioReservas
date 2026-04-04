@@ -19,23 +19,41 @@ const ADMIN_EMAILS = ['mmiravitllas@gmail.com'];
 // Helper to determine the user's role
 async function getUserRole(user) {
     if (!user) return 'guest';
-    // 1. Check if email is in the hardcoded admin list
     if (ADMIN_EMAILS.includes(user.email)) return 'admin';
-
-    // 2. Fallback: check Firestore for a specific user role (if implemented later)
     try {
         const userDoc = await db.collection('users').doc(user.uid).get();
-        if (userDoc.exists) {
-            return userDoc.data().role || 'employee';
-        }
+        if (userDoc.exists) return userDoc.data().role || 'employee';
     } catch (e) {
         console.error('Error fetching role:', e);
     }
-    
-    // Default to employee for any other authenticated user
     return 'employee';
 }
 
-// Global Firestore instance used by app.js
+// Global Config (Firestore Settings)
+async function getGlobalConfig() {
+    try {
+        const doc = await db.collection('settings').doc('global_config').get();
+        if (!doc.exists) {
+            // Initialize if missing
+            const init = { tax_rate: 1.75, counters: {} };
+            await db.collection('settings').doc('global_config').set(init);
+            return init;
+        }
+        return doc.data();
+    } catch (e) {
+        console.error('Error fetching config:', e);
+        return { tax_rate: 1.75, counters: {} };
+    }
+}
+
+async function updateGlobalConfig(data) {
+    try {
+        await db.collection('settings').doc('global_config').update(data);
+    } catch (e) {
+        console.error('Error updating config:', e);
+    }
+}
+
+// Global Firestore instance
 const db = firebase.firestore();
 const auth = firebase.auth();

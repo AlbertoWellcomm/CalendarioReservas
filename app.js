@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let hideTooltipTimeout     = null;
     let receiptData            = {};
     let unsubscribeBookings    = null;
-    let RATE_PER_PERSON_NIGHT  = parseFloat(localStorage.getItem('touristic_tax_rate')) || 1.75;
+    let RATE_PER_PERSON_NIGHT  = 1.75; // Will be updated from Firestore
     const MAX_NIGHTS           = 7;
     let currentNights          = 0;
     let currentReceiptLang     = 'es';
@@ -100,9 +100,21 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Firebase helpers ──────────────────────────────────────────────────────
 
     function initFirebaseSync() {
-        firebase.auth().onAuthStateChanged(user => {
+        firebase.auth().onAuthStateChanged(async user => {
             if (user) {
                 console.log('Autenticado como:', user.email);
+                
+                // Fetch and listen for global config (tax rate)
+                db.collection('settings').doc('global_config').onSnapshot(doc => {
+                    if (doc.exists) {
+                        const data = doc.data();
+                        if (data.tax_rate !== undefined) {
+                            RATE_PER_PERSON_NIGHT = parseFloat(data.tax_rate);
+                            if (receiptModal && !receiptModal.classList.contains('hidden')) updateReceiptTotal();
+                        }
+                    }
+                });
+
                 subscribeToBookings();
             } else {
                 console.warn('Usuario no autenticado. Reintentando o redirigiendo...');
@@ -592,11 +604,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function getNextReceiptId() {
-        const year = new Date().getFullYear(), key = `receipt_counter_${year}`;
-        const n = parseInt(localStorage.getItem(key) || '0', 10) + 1;
-        localStorage.setItem(key, n);
-        return `${year}-${String(n).padStart(3,'0')}`;
+    async function getNextReceiptId() {
+        const year = new Date().getFullYear();
+        const configRef = db.collection('settings').doc('global_config');
+        
+        try {
+            return await db.runTransaction(async (transaction) => {
+                const doc = await transaction.get(configRef);
+                let counters = {};
+                if (doc.exists) counters = doc.data().counters || {};
+                
+                const current = parseInt(counters[year] || '0', 10);
+                const next = current + 1;
+                
+                // Update Firestore
+                counters[year] = next;
+                transaction.update(configRef, { counters: counters });
+                
+                return `${year}-${String(next).padStart(3,'0')}`;
+            });
+        } catch (e) {
+            console.error('Error incrementing counter:', e);
+            // Fallback to local if truly desperate
+            const key = `receipt_counter_${year}`;
+            const n = parseInt(localStorage.getItem(key) || '0', 10) + 1;
+            localStorage.setItem(key, n);
+            return `${year}-${String(n).padStart(3,'0')}`;
+        }
     }
 
     function calcNightsR(startISO, salidaISO) {
@@ -604,12 +638,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return Math.min(raw, MAX_NIGHTS);
     }
 
-    function openReceipt(aptName, paxCount, startISO, salidaISO) {
+    async function openReceipt(aptName, paxCount, startISO, salidaISO) {
         receiptActiveData = { apt:aptName, startISO, salidaISO };
         const pax = parseInt(paxCount, 10) || 0;
         currentNights = calcNightsR(startISO, salidaISO);
         const t  = receiptI18n[currentReceiptLang];
-        const id = getNextReceiptId();
+        const id = await getNextReceiptId();
         document.getElementById('r-id').textContent       = id;
         document.getElementById('r-apt').textContent      = aptName || '-';
         document.getElementById('r-checkin').textContent  = formatReceiptDate(startISO);
@@ -636,15 +670,65 @@ document.addEventListener('DOMContentLoaded', () => {
     if (receiptModal)    receiptModal.addEventListener('click',    e => { if (e.target === receiptModal) receiptModal.classList.add('hidden'); });
 
     if (receiptPrintBtn) {
-        receiptPrintBtn.addEventListener('click', () => {
+        receiptPrintBtn.addEventListener('click', async () => {
             const pax   = parseInt(document.getElementById('r-pax')?.value, 10) || 0;
             const total = pax * currentNights * RATE_PER_PERSON_NIGHT;
-            const hist  = JSON.parse(localStorage.getItem('emitted_receipts') || '[]');
-            hist.push({ id: document.getElementById('r-id').textContent, apt: receiptActiveData.apt||'-', checkin: receiptActiveData.startISO, pax, nights: currentNights, total, dateEmitted: new Date().toISOString() });
-            localStorage.setItem('emitted_receipts', JSON.stringify(hist));
-            window.print();
+            const id    = document.getElementById('r-id').textContent;
+
+            // Save to Firestore instead of localStorage
+            try {
+                await db.collection('receipts').add({
+                    id: id,
+                    apt: receiptActiveData.apt || '-',
+                    checkin: receiptActiveData.startISO,
+                    pax: pax,
+                    nights: currentNights,
+                    total: total,
+                    dateEmitted: new Date().toISOString()
+                });
+                window.print();
+            } catch (e) {
+                alert('Error al guardar recibo: ' + e.message);
+            }
         });
     }
+
+    async function openRegistry() {
+        if (!registryTbody) return;
+        registryTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;">Cargando...</td></tr>';
+        registryModal?.classList.remove('hidden');
+
+        try {
+            const snapshot = await db.collection('receipts').orderBy('dateEmitted', 'desc').limit(100).get();
+            registryTbody.innerHTML = '';
+            
+            if (snapshot.empty) {
+                registryTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;">No hay recibos emitidos.</td></tr>';
+                return;
+            }
+
+            snapshot.forEach(doc => {
+                const r = doc.data();
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid #f2f4f7';
+                tr.innerHTML = `
+                    <td style="padding:12px 10px;">${r.id}</td>
+                    <td style="padding:12px 10px;">${formatReceiptDate(r.checkin)}</td>
+                    <td style="padding:12px 10px;">${r.apt}</td>
+                    <td style="padding:12px 10px; text-align:center;">${r.pax}</td>
+                    <td style="padding:12px 10px; text-align:center;">${r.nights}</td>
+                    <td style="padding:12px 10px; text-align:right; font-weight:600;">${formatCurrency(r.total)}</td>
+                `;
+                registryTbody.appendChild(tr);
+            });
+        } catch (e) {
+            registryTbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:red;padding:20px;">Error: ${e.message}</td></tr>`;
+        }
+    }
+
+    if (registryBtn) registryBtn.addEventListener('click', openRegistry);
+    if (registryCloseBtn) registryCloseBtn.addEventListener('click', () => registryModal?.classList.add('hidden'));
+    if (registryModal) registryModal.addEventListener('click', e => { if (e.target === registryModal) registryModal.classList.add('hidden'); });
 
     // ── Registry ──────────────────────────────────────────────────────────────
 
@@ -696,16 +780,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (configModal) configModal.classList.remove('hidden');
     });
     if (configCloseBtn) configCloseBtn.addEventListener('click', () => configModal?.classList.add('hidden'));
-    if (configSaveBtn)  configSaveBtn.addEventListener('click',  () => {
-        RATE_PER_PERSON_NIGHT = parseFloat(configTaxRateInput.value) || 1.75;
-        localStorage.setItem('touristic_tax_rate', RATE_PER_PERSON_NIGHT);
-        if (receiptModal && !receiptModal.classList.contains('hidden')) { updateReceiptTotal(); }
+    if (configSaveBtn)  configSaveBtn.addEventListener('click',  async () => {
+        const newRate = parseFloat(configTaxRateInput.value) || 1.75;
+        await updateGlobalConfig({ tax_rate: newRate });
+        // UI updates automatically via onSnapshot
         configModal?.classList.add('hidden');
     });
-    if (configResetBtn) configResetBtn.addEventListener('click', () => {
+    if (configResetBtn) configResetBtn.addEventListener('click', async () => {
         const yr = new Date().getFullYear();
-        if (confirm(`¿Reiniciar contador de recibos para ${yr}?`)) {
-            localStorage.setItem(`receipt_counter_${yr}`, '0');
+        if (confirm(`¿Reiniciar contador de recibos para ${yr} en la base de datos?`)) {
+            const config = await getGlobalConfig();
+            config.counters[yr] = 0;
+            await updateGlobalConfig({ counters: config.counters });
             configModal?.classList.add('hidden');
         }
     });

@@ -406,8 +406,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // ============================
     // TOURISTIC TAX RECEIPT LOGIC
     // ============================
-    let RATE_PER_PERSON_NIGHT = parseFloat(localStorage.getItem('touristic_tax_rate')) || 1.75;
+    let RATE_PER_PERSON_NIGHT = 1.75; // Will be sync'ed from Firestore
     const MAX_NIGHTS = 7;
+
+    // Fetch and listen for global config (tax rate) in tablet view
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            db.collection('settings').doc('global_config').onSnapshot(doc => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    if (data.tax_rate !== undefined) {
+                        RATE_PER_PERSON_NIGHT = parseFloat(data.tax_rate);
+                        if (receiptModal && !receiptModal.classList.contains('hidden')) updateReceiptTotal();
+                    }
+                }
+            });
+        }
+    });
 
     const receiptModal = document.getElementById('receipt-modal');
     const receiptPrintBtn = document.getElementById('receipt-print-btn');
@@ -415,12 +430,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const ttPrintReceipt = document.getElementById('tt-print-receipt');
 
     // Generate incremental receipt ID: YYYY-NNN (resets each year)
-    function getNextReceiptId() {
+    async function getNextReceiptId() {
         const year = new Date().getFullYear();
-        const counterKey = `receipt_counter_${year}`;
-        let counter = parseInt(localStorage.getItem(counterKey) || '0', 10) + 1;
-        localStorage.setItem(counterKey, counter);
-        return `${year}-${String(counter).padStart(3, '0')}`;
+        const configRef = db.collection('settings').doc('global_config');
+        
+        try {
+            return await db.runTransaction(async (transaction) => {
+                const doc = await transaction.get(configRef);
+                let counters = {};
+                if (doc.exists) counters = doc.data().counters || {};
+                
+                const current = parseInt(counters[year] || '0', 10);
+                const next = current + 1;
+                
+                // Update Firestore
+                counters[year] = next;
+                transaction.update(configRef, { counters: counters });
+                
+                return `${year}-${String(next).padStart(3, '0')}`;
+            });
+        } catch (e) {
+            console.error('Error incrementing counter (tablet):', e);
+            const key = `receipt_counter_${year}`;
+            const n = parseInt(localStorage.getItem(key) || '0', 10) + 1;
+            localStorage.setItem(key, n);
+            return `${year}-${String(n).padStart(3, '0')}`;
+        }
     }
 
     // Calculate taxable nights (capped at MAX_NIGHTS)
@@ -520,11 +555,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Open the receipt modal and fill in the data
-    function openReceipt(aptName, paxCount, startISO, salidaISO) {
+    async function openReceipt(aptName, paxCount, startISO, salidaISO) {
         receiptActiveData = { apt: aptName, startISO, salidaISO };
         const pax = parseInt(paxCount, 10) || 0;
         currentNights = calcNights(startISO, salidaISO);
-        const receiptId = getNextReceiptId();
+        const receiptId = await getNextReceiptId();
         const t = receiptI18n[currentReceiptLang];
 
         document.getElementById('r-id').textContent       = receiptId;
@@ -579,28 +614,29 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Print receipt and save to registry
+    // Print receipt and save to Firestore
     if (receiptPrintBtn) {
-        receiptPrintBtn.addEventListener('click', () => {
-            // Save receipt to registry
-            const hist = JSON.parse(localStorage.getItem('emitted_receipts') || '[]');
+        receiptPrintBtn.addEventListener('click', async () => {
             const paxInput = document.getElementById('r-pax');
             const pax = parseInt(paxInput.value, 10) || 0;
             const total = pax * currentNights * RATE_PER_PERSON_NIGHT;
+            const id = document.getElementById('r-id').textContent;
             
-            const record = {
-                id: document.getElementById('r-id').textContent,
-                apt: receiptActiveData.apt || '-',
-                checkin: receiptActiveData.startISO,
-                pax: pax,
-                nights: currentNights,
-                total: total,
-                dateEmitted: new Date().toISOString()
-            };
-            hist.push(record);
-            localStorage.setItem('emitted_receipts', JSON.stringify(hist));
-            
-            window.print();
+            try {
+                // Save to Firestore 'receipts' collection
+                await db.collection('receipts').add({
+                    id: id,
+                    apt: receiptActiveData.apt || '-',
+                    checkin: receiptActiveData.startISO,
+                    pax: pax,
+                    nights: currentNights,
+                    total: total,
+                    dateEmitted: new Date().toISOString()
+                });
+                window.print();
+            } catch (e) {
+                alert('Error al guardar recibo en la base de datos: ' + e.message);
+            }
         });
     }
 
@@ -615,53 +651,54 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let currentFilteredReceipts = [];
 
-    function openRegistry() {
-        if (!registryModal) return;
-        const currentYear = new Date().getFullYear();
-        const allHist = JSON.parse(localStorage.getItem('emitted_receipts') || '[]');
-        
-        // Filter to current year based on checkin date (or emitted date if checkin is missing)
-        currentFilteredReceipts = allHist.filter(r => {
-            const d = new Date(r.checkin || r.dateEmitted);
-            return d.getFullYear() === currentYear;
-        });
-        
-        // Sort descending by emission date
-        currentFilteredReceipts.sort((a,b) => new Date(b.dateEmitted) - new Date(a.dateEmitted));
+    async function openRegistry() {
+        if (!registryTbody) return;
+        registryTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;">Cargando...</td></tr>';
+        registryModal?.classList.remove('hidden');
 
-        let p1Total = 0, p1Count = 0; // Apr - Oct (months 3 to 9)
-        let p2Total = 0, p2Count = 0; // Nov - Mar (months 10,11,0,1,2)
-
-        registryTbody.innerHTML = '';
-        currentFilteredReceipts.forEach(r => {
-            const chkDate = new Date(r.checkin || r.dateEmitted);
-            const m = chkDate.getMonth();
-            if (m >= 3 && m <= 9) {
-                p1Total += r.total;
-                p1Count++;
-            } else {
-                p2Total += r.total;
-                p2Count++;
+        try {
+            const snapshot = await db.collection('receipts').orderBy('dateEmitted', 'desc').limit(50).get();
+            registryTbody.innerHTML = '';
+            
+            if (snapshot.empty) {
+                registryTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;">No hay recibos registrados.</td></tr>';
+                return;
             }
 
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">${r.id}</td>
-                <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">${formatReceiptDate(r.checkin)}</td>
-                <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">${r.apt}</td>
-                <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">${r.pax}</td>
-                <td style="padding: 10px; border-bottom: 1px solid #e0e0e0;">${r.nights}</td>
-                <td style="padding: 10px; border-bottom: 1px solid #e0e0e0; font-weight: 600;">${r.total.toLocaleString('es-ES', {style:'currency', currency:'EUR'})}</td>
-            `;
-            registryTbody.appendChild(tr);
-        });
+            let p1Total = 0, p1Count = 0, p2Total = 0, p2Count = 0;
+            const currentYear = new Date().getFullYear();
 
-        document.getElementById('reg-total-p1').textContent = p1Total.toLocaleString('es-ES', {style:'currency', currency:'EUR'});
-        document.getElementById('reg-count-p1').textContent = `${p1Count} recibos`;
-        document.getElementById('reg-total-p2').textContent = p2Total.toLocaleString('es-ES', {style:'currency', currency:'EUR'});
-        document.getElementById('reg-count-p2').textContent = `${p2Count} recibos`;
+            snapshot.forEach(doc => {
+                const r = doc.data();
+                const chkDate = new Date(r.checkin || r.dateEmitted);
+                const m = chkDate.getMonth();
+                const mYear = chkDate.getFullYear();
 
-        registryModal.classList.remove('hidden');
+                if (mYear === currentYear) {
+                    if (m >= 3 && m <= 9) { p1Total += r.total; p1Count++; }
+                    else { p2Total += r.total; p2Count++; }
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="padding:10px; border-bottom:1px solid #e0e0e0;">${r.id}</td>
+                    <td style="padding:10px; border-bottom:1px solid #e0e0e0;">${formatReceiptDate(r.checkin)}</td>
+                    <td style="padding:10px; border-bottom:1px solid #e0e0e0;">${r.apt}</td>
+                    <td style="padding:10px; border-bottom:1px solid #e0e0e0;">${r.pax}</td>
+                    <td style="padding:10px; border-bottom:1px solid #e0e0e0;">${r.nights}</td>
+                    <td style="padding:10px; border-bottom:1px solid #e0e0e0; font-weight:600;">${r.total.toLocaleString('es-ES', {style:'currency', currency:'EUR'})}</td>
+                `;
+                registryTbody.appendChild(tr);
+            });
+
+            document.getElementById('reg-total-p1').textContent = p1Total.toLocaleString('es-ES', {style:'currency', currency:'EUR'});
+            document.getElementById('reg-count-p1').textContent = `${p1Count} recibos`;
+            document.getElementById('reg-total-p2').textContent = p2Total.toLocaleString('es-ES', {style:'currency', currency:'EUR'});
+            document.getElementById('reg-count-p2').textContent = `${p2Count} recibos`;
+
+        } catch (e) {
+            registryTbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:red;padding:10px;">Error: ${e.message}</td></tr>`;
+        }
     }
 
     if (registryBtn) registryBtn.addEventListener('click', openRegistry);
@@ -755,5 +792,33 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initial empty Calendar
     initCalendar();
 
-    // receiptData is populated by the patched eventMouseEnter in initCalendar
+    // ============================
+    // SWIPE GESTURE NAVIGATION
+    // ============================
+    let touchstartX = 0;
+    let touchendX = 0;
+
+    calendarEl.addEventListener('touchstart', e => {
+        touchstartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+
+    calendarEl.addEventListener('touchend', e => {
+        touchendX = e.changedTouches[0].screenX;
+        handleSwipe();
+    }, { passive: true });
+
+    function handleSwipe() {
+        const threshold = 75; // Minimum horizontal distance to count as a swipe
+        const diff = touchendX - touchstartX;
+        
+        if (Math.abs(diff) < threshold) return;
+
+        if (diff > 0) {
+            // Swipe Right (finger moves →) : Show Previous Month
+            if (calendar) calendar.prev();
+        } else {
+            // Swipe Left (finger moves ←) : Show Next Month
+            if (calendar) calendar.next();
+        }
+    }
 });

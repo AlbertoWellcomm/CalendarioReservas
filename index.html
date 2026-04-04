@@ -171,11 +171,19 @@
         
         let targetPage = '';
 
-        function requestPassword(pageUrl) {
+        async function requestPassword(pageUrl) {
             // See if they are already authenticated this session
-            if (firebase.auth().currentUser) {
+            const user = firebase.auth().currentUser;
+            if (user) {
+                const role = await getUserRole(user);
                 sessionStorage.setItem('auth', 'true');
-                window.location.href = pageUrl;
+                
+                // Admin can go anywhere; Employee stays in empleados.html
+                if (role === 'admin') {
+                    window.location.href = pageUrl;
+                } else {
+                    window.location.href = 'empleados.html';
+                }
                 return;
             }
             
@@ -199,10 +207,17 @@
                 pwdSubmitBtn.textContent = 'Iniciando sesión...';
                 pwdSubmitBtn.disabled = true;
                 
-                await firebase.auth().signInWithEmailAndPassword(email, password);
+                const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
+                const role = await getUserRole(userCredential.user);
                 
                 sessionStorage.setItem('auth', 'true');
-                window.location.href = targetPage;
+                
+                // Logic: If they are NOT an admin, they go to empleados.html regardless of the button clicked
+                if (role === 'admin') {
+                    window.location.href = targetPage;
+                } else {
+                    window.location.href = 'empleados.html';
+                }
             } catch (err) {
                 console.error(err);
                 alert('Error al iniciar sesión: ' + err.message);
@@ -223,9 +238,12 @@
         });
 
         // Persist session check
-        firebase.auth().onAuthStateChanged((user) => {
-            if (user) sessionStorage.setItem('auth', 'true');
-            else sessionStorage.removeItem('auth');
+        firebase.auth().onAuthStateChanged(async (user) => {
+            if (user) {
+                sessionStorage.setItem('auth', 'true');
+            } else {
+                sessionStorage.removeItem('auth');
+            }
         });
     </script>
 </body>

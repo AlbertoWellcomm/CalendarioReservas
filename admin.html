@@ -31,10 +31,16 @@
         if (sessionStorage.getItem('auth') !== 'true') window.location.href = 'index.html';
         window.PAGE_MODE = 'admin';
         
-        firebase.auth().onAuthStateChanged(user => {
+        firebase.auth().onAuthStateChanged(async user => {
             if (!user) {
                 sessionStorage.removeItem('auth');
                 window.location.href = 'index.html';
+            } else {
+                const role = await getUserRole(user);
+                if (role !== 'admin') {
+                    console.warn('Acceso denegado: redirigiendo a empleados.');
+                    window.location.href = 'empleados.html';
+                }
             }
         });
     </script>

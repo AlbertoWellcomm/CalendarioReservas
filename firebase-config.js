@@ -13,5 +13,29 @@ if (!firebase.apps || !firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
 
+// Admin Emails (Super Admins)
+const ADMIN_EMAILS = ['mmiravitllas@gmail.com'];
+
+// Helper to determine the user's role
+async function getUserRole(user) {
+    if (!user) return 'guest';
+    // 1. Check if email is in the hardcoded admin list
+    if (ADMIN_EMAILS.includes(user.email)) return 'admin';
+
+    // 2. Fallback: check Firestore for a specific user role (if implemented later)
+    try {
+        const userDoc = await db.collection('users').doc(user.uid).get();
+        if (userDoc.exists) {
+            return userDoc.data().role || 'employee';
+        }
+    } catch (e) {
+        console.error('Error fetching role:', e);
+    }
+    
+    // Default to employee for any other authenticated user
+    return 'employee';
+}
+
 // Global Firestore instance used by app.js
 const db = firebase.firestore();
+const auth = firebase.auth();

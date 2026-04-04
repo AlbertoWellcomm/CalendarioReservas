@@ -27,6 +27,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const ttNeto = document.getElementById('tt-neto');
     const ttNotas = document.getElementById('tt-notas');
 
+    const ttEditBtn = document.getElementById('tt-edit-booking');
+    const ttDeleteBtn = document.getElementById('tt-delete-booking');
+    
+    // Booking Form Elements
+    const bookingModal = document.getElementById('booking-modal');
+    const bookingForm = document.getElementById('booking-form');
+    const bookingModalTitle = document.getElementById('booking-modal-title');
+    const bfApt = document.getElementById('bf-apt');
+    const bfEntrada = document.getElementById('bf-entrada');
+    const bfSalida = document.getElementById('bf-salida');
+    const bfBroker = document.getElementById('bf-broker');
+    const bfPax = document.getElementById('bf-pax');
+    const bfBruto = document.getElementById('bf-bruto');
+    const bfComisiones = document.getElementById('bf-comisiones');
+    const bfNeto = document.getElementById('bf-neto');
+    const bfNotas = document.getElementById('bf-notas');
+    const addBookingBtn = document.getElementById('add-booking-btn');
+
     // Apartment Colors
     const aptColors = {
         'loft': 'var(--color-apt-1)',
@@ -40,6 +58,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentReceiptLang = 'es';
     let receiptActiveData = {};
     let currentNights = 1;
+    let currentBookingId = null;
+    let currentEditingBookingId = null;
 
     // Initialize Calendar
     function initCalendar(events = []) {
@@ -96,6 +116,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (ttComisiones) ttComisiones.textContent = props.comisiones !== undefined ? formatCurrency(props.comisiones) : '-';
         if (ttNeto) ttNeto.textContent = props.neto !== undefined ? formatCurrency(props.neto) : '-';
         if (ttNotas) ttNotas.textContent = props.notas || '-';
+        
+        currentBookingId = props.firestoreId || info.event.id;
         
         const startStr = info.event.start ? formatDateISO(info.event.start) : '?';
         const endStr = info.event.end ? formatDateISO(info.event.end) : '?';
@@ -315,6 +337,128 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             initCalendar(events);
         }
+    }
+
+    // ── Booking form modal (CRUD) ────────────────────────────────────────────────
+    function openBookingModal(bookingId = null, data = null) {
+        currentEditingBookingId = bookingId;
+        if (bookingModalTitle) bookingModalTitle.textContent = bookingId ? 'Editar Reserva' : 'Nueva Reserva';
+        if (bookingForm) bookingForm.reset();
+
+        if (data && bookingId) {
+            if (bfApt) bfApt.value = data.apt || '';
+            if (bfEntrada) bfEntrada.value = data.entrada || '';
+            if (bfSalida) bfSalida.value = data.salida || '';
+            if (bfBroker) bfBroker.value = data.broker || '';
+            if (bfPax) bfPax.value = data.pax || 1;
+            if (bfBruto) bfBruto.value = data.bruto || '';
+            if (bfComisiones) bfComisiones.value = data.comisiones || '';
+            if (bfNeto) bfNeto.value = data.neto || '';
+            if (bfNotas) bfNotas.value = data.notas || '';
+        }
+
+        if (bookingModal) bookingModal.classList.remove('hidden');
+    }
+
+    function closeBookingModal() {
+        if (bookingModal) bookingModal.classList.add('hidden');
+        currentEditingBookingId = null;
+        if (bookingForm) bookingForm.reset();
+    }
+
+    async function saveBooking(formData) {
+        const payload = {
+            apt: formData.apt,
+            entrada: formData.entrada,
+            salida: formData.salida,
+            broker: formData.broker,
+            pax: parseInt(formData.pax) || 0,
+            bruto: parseFloat(formData.bruto) || 0,
+            comisiones: parseFloat(formData.comisiones) || 0,
+            neto: parseFloat(formData.neto) || 0,
+            notas: formData.notas || '',
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        try {
+            if (currentEditingBookingId) {
+                await db.collection('bookings').doc(currentEditingBookingId).update(payload);
+                showToast('Reserva actualizada ✓');
+            } else {
+                payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                await db.collection('bookings').add(payload);
+                showToast('Reserva añadida ✓');
+            }
+            closeBookingModal();
+        } catch (err) {
+            alert('Error al guardar: ' + err.message);
+        }
+    }
+
+    async function deleteBooking(id) {
+        if (!id) return;
+        if (!confirm('¿Eliminar esta reserva? Esta acción no se puede deshacer.')) return;
+        try {
+            await db.collection('bookings').doc(id).delete();
+            if (tooltip) tooltip.classList.add('hidden');
+            showToast('Reserva eliminada');
+        } catch (err) {
+            alert('Error al eliminar: ' + err.message);
+        }
+    }
+
+    function showToast(msg) {
+        console.log('Toast:', msg);
+        // We could add a more visual toast if needed, for now alert or log
+    }
+
+    // Auto-calculate neto
+    function calcNeto() {
+        if (!bfBruto || !bfComisiones || !bfNeto) return;
+        const b = parseFloat(bfBruto.value) || 0;
+        const c = parseFloat(bfComisiones.value) || 0;
+        bfNeto.value = (b - c).toFixed(2);
+    }
+    if (bfBruto) bfBruto.addEventListener('input', calcNeto);
+    if (bfComisiones) bfComisiones.addEventListener('input', calcNeto);
+
+    if (bookingForm) {
+        bookingForm.addEventListener('submit', async e => {
+            e.preventDefault();
+            const fd = {
+                apt: bfApt.value,
+                entrada: bfEntrada.value,
+                salida: bfSalida.value,
+                broker: bfBroker.value,
+                pax: bfPax.value,
+                bruto: bfBruto.value,
+                comisiones: bfComisiones.value,
+                neto: bfNeto.value,
+                notas: bfNotas.value
+            };
+            if (new Date(fd.salida) <= new Date(fd.entrada)) {
+                alert('Check-out debe ser posterior al Check-in.');
+                return;
+            }
+            await saveBooking(fd);
+        });
+    }
+
+    if (addBookingBtn) addBookingBtn.addEventListener('click', () => openBookingModal());
+    
+    if (ttEditBtn) {
+        ttEditBtn.addEventListener('click', async () => {
+            if (tooltip) tooltip.classList.add('hidden');
+            if (!currentBookingId) return;
+            try {
+                const doc = await db.collection('bookings').doc(currentBookingId).get();
+                if (doc.exists) openBookingModal(doc.id, doc.data());
+            } catch (err) { alert('Error: ' + err.message); }
+        });
+    }
+
+    if (ttDeleteBtn) {
+        ttDeleteBtn.addEventListener('click', () => deleteBooking(currentBookingId));
     }
     
     // Parse Date helper for various inputs from SheetJs

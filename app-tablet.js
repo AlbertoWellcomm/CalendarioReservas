@@ -346,7 +346,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (bookingForm) bookingForm.reset();
 
         if (data && bookingId) {
-            if (bfApt) bfApt.value = data.apt || '';
+            if (bfApt && data.apt) {
+                // Case-insensitive match for the apartment selection
+                const aptToMatch = data.apt.toLowerCase().trim();
+                const option = Array.from(bfApt.options).find(opt => opt.value.toLowerCase().trim() === aptToMatch);
+                if (option) bfApt.value = option.value;
+            } else if (bfApt) {
+                bfApt.value = '';
+            }
             if (bfEntrada) bfEntrada.value = data.entrada || '';
             if (bfSalida) bfSalida.value = data.salida || '';
             if (bfBroker) bfBroker.value = data.broker || '';

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal de Reservas</title>
+    <!-- Use Google Fonts (from style.css) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- Firebase SDKs (compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="firebase-config.js"></script>
+
+    <style>
+        body {
+            display: flex;
+            height: 100vh;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg);
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            color: var(--text-color);
+        }
+        .portal-container {
+            background: var(--surface);
+            padding: 3rem;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            text-align: center;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .portal-title {
+            margin-bottom: 2rem;
+            font-size: 2rem;
+            color: var(--accent);
+        }
+        .portal-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: #21262d;
+            border: 1px solid var(--border);
+            color: #c9d1d9;
+            font-size: 1.1rem;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .portal-btn:hover {
+            background: #30363d;
+            border-color: #8b949e;
+        }
+        .portal-btn-primary {
+            background: var(--accent);
+            color: #ffffff;
+            border-color: var(--accent);
+        }
+        .portal-btn-primary:hover {
+            background: #3f88ef;
+            border-color: #3f88ef;
+            color: #ffffff;
+        }
+        
+        /* Modal Styles overwritten slightly for portal */
+        .portal-modal-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 2rem;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.7);
+        }
+    </style>
+</head>
+<body>
+    <div class="portal-container">
+        <h1 class="portal-title">Portal de Reservas</h1>
+        
+        <button class="portal-btn" onclick="window.location.href='empleados.html'">
+            👥 Vista Empleados
+        </button>
+        
+        <button class="portal-btn portal-btn-primary" onclick="requestPassword('admin.html')">
+            💻 Vista Admin PC
+        </button>
+        
+        <button class="portal-btn portal-btn-primary" onclick="requestPassword('tablet.html')">
+            📱 Vista Tablet
+        </button>
+    </div>
+
+    <!-- Password Modal -->
+    <div id="pwd-modal" class="receipt-modal-overlay hidden">
+        <div class="portal-modal-box">
+            <h2 style="margin-bottom: 1rem; font-size: 1.3rem;">Acceso Restringido</h2>
+            <p style="margin-bottom: 1.5rem; color: #8b949e; font-size: 0.9rem;">Introduce tus credenciales de Firebase para acceder.</p>
+            <input type="email" id="email-input" placeholder="Email (ej: admin@calres.com)" class="local-note-input" style="width: 100%; box-sizing: border-box; background: var(--bg); color: white; border: 1px solid var(--border); padding: 10px; border-radius: 4px; margin-bottom: 12px;">
+            <input type="password" id="pwd-input" placeholder="Contraseña" class="local-note-input" style="width: 100%; box-sizing: border-box; background: var(--bg); color: white; border: 1px solid var(--border); padding: 10px; border-radius: 4px;">
+            <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
+                <button id="pwd-submit-btn" class="action-btn" style="flex: 1; background: var(--accent); color: white;">Entrar</button>
+                <button id="pwd-close-btn" class="action-btn secondary-btn" style="flex: 1;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const pwdModal = document.getElementById('pwd-modal');
+        const emailInput = document.getElementById('email-input');
+        const pwdInput = document.getElementById('pwd-input');
+        const pwdSubmitBtn = document.getElementById('pwd-submit-btn');
+        const pwdCloseBtn = document.getElementById('pwd-close-btn');
+        
+        let targetPage = '';
+
+        function requestPassword(pageUrl) {
+            // See if they are already authenticated this session
+            if (firebase.auth().currentUser) {
+                sessionStorage.setItem('auth', 'true');
+                window.location.href = pageUrl;
+                return;
+            }
+            
+            targetPage = pageUrl;
+            emailInput.value = '';
+            pwdInput.value = '';
+            pwdModal.classList.remove('hidden');
+            emailInput.focus();
+        }
+
+        async function checkPassword() {
+            const email = emailInput.value.trim();
+            const password = pwdInput.value;
+            
+            if (!email || !password) {
+                alert('Introduce el email y la contraseña.');
+                return;
+            }
+
+            try {
+                pwdSubmitBtn.textContent = 'Iniciando sesión...';
+                pwdSubmitBtn.disabled = true;
+                
+                await firebase.auth().signInWithEmailAndPassword(email, password);
+                
+                sessionStorage.setItem('auth', 'true');
+                window.location.href = targetPage;
+            } catch (err) {
+                console.error(err);
+                alert('Error al iniciar sesión: ' + err.message);
+            } finally {
+                pwdSubmitBtn.textContent = 'Entrar';
+                pwdSubmitBtn.disabled = false;
+            }
+        }
+
+        pwdSubmitBtn.addEventListener('click', checkPassword);
+        [emailInput, pwdInput].forEach(el => {
+            el.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') checkPassword();
+            });
+        });
+        pwdCloseBtn.addEventListener('click', () => {
+            pwdModal.classList.add('hidden');
+        });
+
+        // Persist session check
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) sessionStorage.setItem('auth', 'true');
+            else sessionStorage.removeItem('auth');
+        });
+    </script>
+</body>
+</html>

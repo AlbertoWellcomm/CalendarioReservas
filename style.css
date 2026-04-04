@@ -1,0 +1,834 @@
+:root {
+    --bg-color: #0d1117;
+    --b-dark: #161b22;
+    --b-darker: #010409;
+    --text-primary: #e6edf3;
+    --text-secondary: #8b949e;
+    --accent: #58a6ff;
+    --accent-hover: #3182ce;
+    --color-apt-1: #ff7b72;
+    --color-apt-2: #7ee787;
+    --color-apt-3: #d2a8ff;
+    --border-color: #30363d;
+    --card-bg: rgba(22, 27, 34, 0.7);
+    --tooltip-bg: rgba(22, 27, 34, 0.95);
+    
+    --font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    font-family: var(--font-family);
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+.app-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+/* Header & Upload Zone */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 1.5rem 2rem;
+    background: linear-gradient(135deg, var(--b-dark), var(--b-darker));
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.header-left h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    background: linear-gradient(to right, #58a6ff, #a371f7);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.5rem;
+}
+
+.subtitle {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    font-weight: 300;
+}
+
+.upload-zone {
+    border: 2px dashed #484f58;
+    border-radius: 12px;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: rgba(255,255,255,0.02);
+    min-width: 300px;
+}
+
+.upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(88, 166, 255, 0.05);
+    transform: translateY(-2px);
+}
+
+.upload-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    color: var(--text-secondary);
+}
+
+.upload-content svg {
+    color: var(--accent);
+}
+
+/* Calendar Styling overrides for FullCalendar in Dark Mode */
+.calendar-wrapper {
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 2rem;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+    backdrop-filter: blur(10px);
+}
+
+.fc {
+    --fc-page-bg-color: transparent;
+    --fc-neutral-bg-color: var(--b-dark);
+    --fc-border-color: var(--border-color);
+    --fc-button-text-color: var(--text-primary);
+    --fc-button-bg-color: var(--b-darker);
+    --fc-button-border-color: var(--border-color);
+    --fc-button-hover-bg-color: #21262d;
+    --fc-button-active-bg-color: var(--accent);
+    --fc-today-bg-color: rgba(88, 166, 255, 0.1);
+}
+
+.fc .fc-toolbar-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.fc-button-primary {
+    border-radius: 8px !important;
+    font-weight: 500 !important;
+    text-transform: capitalize;
+    transition: all 0.2s ease;
+}
+
+.fc .fc-daygrid-day-number {
+    font-weight: 500;
+    color: var(--text-primary);
+    padding: 8px;
+}
+
+.fc .fc-col-header-cell-cushion {
+    font-weight: 600;
+    padding: 12px 8px;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+}
+
+/* Event overrides */
+.fc-event {
+    cursor: pointer;
+    border: none !important;
+    border-radius: 6px;
+    padding: 2px 4px;
+    margin: 1px 0;
+    font-weight: 500;
+    font-size: 0.85rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.fc-event:hover {
+    transform: scale(1.02);
+    z-index: 5;
+    filter: brightness(1.2);
+}
+
+/* Tooltip Custom Styles */
+.custom-tooltip {
+    position: absolute;
+    z-index: 9999;
+    max-width: 320px;
+    background: var(--tooltip-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+    backdrop-filter: blur(15px);
+    pointer-events: auto;
+    opacity: 0;
+    transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transform: translateY(10px);
+}
+
+.custom-tooltip.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.custom-tooltip.hidden {
+    display: none;
+}
+
+.tooltip-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.apt-badge {
+    background: var(--accent);
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.tt-dates {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.tooltip-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.tt-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+.highlight-row {
+    background: rgba(88, 166, 255, 0.1);
+    padding: 8px 12px;
+    border-radius: 8px;
+    margin-top: 4px;
+}
+
+.tt-label {
+    color: var(--text-secondary);
+}
+
+.tt-value {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.tt-neto {
+    color: var(--accent);
+    font-size: 1.1rem;
+}
+
+.tt-divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: 4px 0;
+}
+
+.tt-notes-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.tt-notes {
+    font-size: 0.85rem;
+    color: #a5b4fc;
+    line-height: 1.4;
+    font-style: italic;
+    background: rgba(165, 180, 252, 0.05);
+    padding: 8px;
+    border-radius: 6px;
+    width: 100%;
+}
+
+/* Local Notes Feature */
+.header-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.action-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+.action-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: var(--text-secondary);
+}
+
+.local-note-input {
+    width: 100%;
+    min-height: 80px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    border-radius: 6px;
+    padding: 8px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    resize: vertical;
+    outline: none;
+    margin-bottom: 8px;
+}
+
+.local-note-input:focus {
+    border-color: var(--accent);
+}
+
+.save-note-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    width: 100%;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+
+.save-note-btn:hover {
+    background: var(--accent-hover);
+}
+
+.save-note-btn.success {
+    background: var(--color-apt-2);
+}
+
+/* Print Receipt Button */
+.print-receipt-btn {
+    background: linear-gradient(135deg, #a371f7, #58a6ff);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 18px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    font-family: inherit;
+    transition: all 0.2s ease;
+    width: 100%;
+    margin-top: 4px;
+    letter-spacing: 0.3px;
+}
+.print-receipt-btn:hover {
+    opacity: 0.88;
+    transform: translateY(-1px);
+}
+
+/* Receipt Modal Overlay */
+.receipt-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+}
+.receipt-modal-overlay.hidden {
+    display: none;
+}
+
+.receipt-modal-box {
+    background: #fff;
+    color: #1a1a2e;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    max-width: 480px;
+    width: 95%;
+    overflow: hidden;
+    font-family: var(--font-family);
+}
+
+/* The receipt itself */
+#receipt-printable {
+    padding: 2rem 2.4rem 1.5rem;
+}
+
+.receipt-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #1a1a2e;
+    padding-bottom: 1rem;
+    margin-bottom: 1.4rem;
+}
+
+.receipt-logo-container {
+    flex-shrink: 0;
+}
+
+.receipt-logo {
+    max-width: 90px;
+    height: auto;
+    object-fit: contain;
+}
+
+.receipt-header-text {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+}
+
+.receipt-header-text h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0;
+}
+
+.receipt-id-box {
+    background: #1a1a2e;
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.receipt-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.receipt-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.95rem;
+    color: #1a1a2e;
+}
+
+.r-label {
+    color: #555;
+    font-weight: 400;
+}
+
+.r-value {
+    font-weight: 600;
+    color: #1a1a2e;
+}
+
+.r-value-input {
+    font-weight: 600;
+    color: #1a1a2e;
+    font-size: 1rem;
+    font-family: inherit;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 2px 8px;
+    width: 60px;
+    text-align: right;
+    transition: border-color 0.2s;
+    background: #f7f8fa;
+}
+
+.r-value-input:focus {
+    outline: none;
+    border-color: #58a6ff;
+    background: #fff;
+}
+
+.receipt-divider {
+    height: 1px;
+    background: #ccc;
+    margin: 0.6rem 0;
+}
+
+.receipt-total-row {
+    background: #f0f4ff;
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-top: 4px;
+}
+
+.receipt-total-row .r-label {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #1a1a2e;
+}
+
+.r-total {
+    font-size: 1.3rem;
+    color: #2563eb;
+    font-weight: 800;
+}
+
+.receipt-footer {
+    margin-top: 1.5rem;
+    text-align: center;
+    font-size: 0.8rem;
+    color: #999;
+    border-top: 1px dashed #ccc;
+    padding-top: 0.9rem;
+}
+
+.receipt-actions {
+    display: flex;
+    gap: 10px;
+    padding: 1rem 2.4rem;
+    background: #f7f8fa;
+    border-top: 1px solid #e0e0e0;
+}
+
+.receipt-actions .action-btn {
+    flex: 1;
+    background: #1a1a2e;
+    color: #fff;
+    border: none;
+    padding: 9px;
+    font-size: 0.9rem;
+    border-radius: 7px;
+    font-weight: 600;
+}
+.receipt-actions .action-btn:hover {
+    background: #2d2d50;
+}
+.receipt-actions .secondary-btn {
+    background: #e0e0e0;
+    color: #1a1a2e;
+}
+.receipt-actions .secondary-btn:hover {
+    background: #c8c8c8;
+}
+
+/* ============================
+   PRINT STYLES
+   ============================ */
+@media print {
+    @page {
+        margin: 0; /* Eliminates browser default headers/footers (URL, page title, etc) */
+    }
+    body {
+        margin: 1.5cm; /* Restores padding inside the printable area */
+    }
+    body > *:not(#receipt-modal) {
+        display: none !important;
+    }
+    #receipt-modal {
+        position: static !important;
+        background: none !important;
+        backdrop-filter: none !important;
+        display: flex !important;
+        align-items: flex-start;
+        justify-content: flex-start;
+    }
+    .receipt-modal-box {
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    .no-print {
+        display: none !important;
+    }
+    
+    .r-value-input {
+        border: none !important;
+        background: transparent !important;
+        padding: 0 !important;
+        width: auto !important;
+        appearance: none !important;
+        -moz-appearance: textfield !important;
+    }
+    
+    .r-value-input::-webkit-inner-spin-button, 
+    .r-value-input::-webkit-outer-spin-button { 
+        -webkit-appearance: none !important; 
+        margin: 0 !important; 
+    }
+}
+
+/* ============================
+   CSS VARS bridge for index.html portal
+   ============================ */
+:root {
+    --bg:       #0d1117;
+    --surface:  #161b22;
+    --text-color: #e6edf3;
+    --border:   #30363d;
+    --radius:   12px;
+}
+
+/* ============================
+   BOOKING FORM MODAL
+   ============================ */
+.booking-modal-box {
+    background: #161b22;
+    color: #e6edf3;
+    border: 1px solid #30363d;
+    border-radius: 16px;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.7);
+    width: 95%;
+    max-width: 560px;
+    overflow: hidden;
+    font-family: var(--font-family);
+    animation: modal-in 0.25s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+@keyframes modal-in {
+    from { opacity:0; transform:scale(0.93) translateY(16px); }
+    to   { opacity:1; transform:scale(1)    translateY(0);    }
+}
+
+.booking-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem 1rem;
+    border-bottom: 1px solid #30363d;
+}
+
+.booking-modal-header h2 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    background: linear-gradient(to right, #58a6ff, #a371f7);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 0;
+}
+
+.modal-close-x {
+    background: transparent;
+    border: none;
+    color: #8b949e;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background 0.2s, color 0.2s;
+}
+.modal-close-x:hover { background: #21262d; color: #e6edf3; }
+
+.booking-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    padding: 1.5rem 2rem;
+}
+
+.bf-field { display: flex; flex-direction: column; gap: 5px; }
+.bf-full  { grid-column: 1 / -1; }
+
+.bf-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.bf-auto-hint {
+    display: inline-block;
+    background: rgba(163,113,247,0.15);
+    color: #a371f7;
+    font-size: 0.65rem;
+    padding: 1px 6px;
+    border-radius: 999px;
+    vertical-align: middle;
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 500;
+}
+
+.bf-input {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    color: #e6edf3;
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+    width: 100%;
+    box-sizing: border-box;
+}
+.bf-input:focus {
+    border-color: #58a6ff;
+    box-shadow: 0 0 0 3px rgba(88,166,255,0.15);
+}
+.bf-input option { background: #161b22; }
+
+.bf-textarea { resize: vertical; min-height: 75px; }
+
+.bf-neto-field { border-color: rgba(163,113,247,0.4); }
+.bf-neto-field:focus {
+    border-color: #a371f7;
+    box-shadow: 0 0 0 3px rgba(163,113,247,0.15);
+}
+
+.booking-form-actions {
+    display: flex;
+    gap: 12px;
+    padding: 1rem 2rem 1.5rem;
+    border-top: 1px solid #30363d;
+}
+
+.bf-submit-btn {
+    flex: 1;
+    background: linear-gradient(135deg, #58a6ff, #a371f7);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 11px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s;
+    letter-spacing: 0.3px;
+}
+.bf-submit-btn:hover  { opacity: 0.88; transform: translateY(-1px); }
+.bf-submit-btn:active { transform: translateY(0); }
+
+.bf-cancel-btn {
+    flex: 0 0 auto;
+    background: #21262d;
+    color: #8b949e;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 11px 20px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.bf-cancel-btn:hover { background: #30363d; color: #e6edf3; }
+
+/* ============================
+   TOOLTIP CRUD BUTTONS
+   ============================ */
+.tt-crud-row {
+    justify-content: stretch;
+    gap: 8px;
+}
+
+.tt-crud-btn {
+    flex: 1;
+    padding: 7px 0;
+    border-radius: 7px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.tt-edit-btn {
+    background: rgba(88,166,255,0.12);
+    color: #58a6ff;
+    border-color: rgba(88,166,255,0.25);
+}
+.tt-edit-btn:hover {
+    background: rgba(88,166,255,0.25);
+    border-color: #58a6ff;
+}
+
+.tt-delete-btn {
+    background: rgba(255,123,114,0.12);
+    color: #ff7b72;
+    border-color: rgba(255,123,114,0.25);
+}
+.tt-delete-btn:hover {
+    background: rgba(255,123,114,0.25);
+    border-color: #ff7b72;
+}
+
+/* ============================
+   APARTMENT LEGEND (empleados)
+   ============================ */
+.apt-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-end;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.legend-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+/* Reports Modal Table specific styles */
+#reports-table-body tr:hover {
+    background: rgba(255,255,255,0.02);
+}
+
+#reports-table-foot tr td {
+    border-top: 2px solid var(--border-color);
+}
+
+@media (max-width: 600px) {
+    .receipt-modal-box {
+        width: 95%;
+        padding: 1rem;
+    }
+    
+    #reports-modal .receipt-header {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 15px;
+    }
+    
+    #reports-modal select {
+        width: 100%;
+    }
+}

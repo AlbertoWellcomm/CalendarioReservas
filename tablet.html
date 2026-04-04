@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendario reservas — Tablet Edition</title>
+
+    <!-- FullCalendar CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- SheetJS (XLSX) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <!-- Firebase SDKs (compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+
+    <!-- Session Check -->
+    <script>
+        if (sessionStorage.getItem('auth') !== 'true') window.location.href = 'index.html';
+        window.PAGE_MODE = 'tablet';
+        
+        firebase.auth().onAuthStateChanged(user => {
+            if (!user) {
+                sessionStorage.removeItem('auth');
+                window.location.href = 'index.html';
+            }
+        });
+    </script>
+
+    <!-- FullCalendar JS -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+</head>
+
+<body class="dark-theme">
+    <div class="app-container">
+
+        <header class="header">
+            <div class="header-left">
+                <h1>Reservas (Tablet)</h1>
+                <p class="subtitle">Datos en tiempo real · Pulsa "Importar" para subir un .ods</p>
+                <div class="header-actions">
+                    <button id="add-booking-btn" class="action-btn" style="background:var(--accent);color:#fff;border-color:var(--accent);">➕ Nueva Reserva</button>
+                    <button id="export-notes-btn" class="action-btn">Exporta Notas</button>
+                    <button id="import-notes-btn" class="action-btn">Importa Notas</button>
+                    <button id="registry-btn" class="action-btn">🧾 Ver Recibos</button>
+                    <button id="reports-btn" class="action-btn" style="background:#a371f7; color:#fff; border-color:#a371f7;">📊 Informes</button>
+                    <button id="config-btn" class="action-btn">⚙️ Configuración</button>
+                    <button class="action-btn" style="background:transparent;color:#ff7b72;border-color:#ff7b72;" onclick="sessionStorage.removeItem('auth');window.location.href='index.html'">🚪 Salir</button>
+                    <input type="file" id="import-file" accept=".json" hidden>
+                </div>
+            </div>
+
+            <!-- Apartment Legend (neatly for tablet) -->
+            <div class="apt-legend">
+                <div class="legend-item">
+                    <span class="legend-dot" style="background:var(--color-apt-1)"></span>
+                    <span>Loft</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot" style="background:var(--color-apt-2)"></span>
+                    <span>1st floor</span>
+                </div>
+            </div>
+
+            <!-- Hide drop zone unless needed, or just make it subtle -->
+            <div class="upload-zone" id="drop-zone" style="display:none;">
+                <input type="file" id="file-input" accept=".ods,.xlsx,.xls" hidden>
+            </div>
+        </header>
+
+        <div class="calendar-wrapper">
+            <div id="calendar"></div>
+        </div>
+
+    </div>
+
+    <!-- Custom Tooltip -->
+    <div id="booking-tooltip" class="custom-tooltip hidden">
+        <div class="tooltip-header">
+            <span class="apt-badge" id="tt-apt">Apartamento</span>
+            <div class="tt-dates" id="tt-dates">12 Oct - 15 Oct</div>
+            <!-- Added X for touch users to close -->
+            <button class="modal-close-x" style="margin-left:auto;" onclick="document.getElementById('booking-tooltip').classList.add('hidden')">✕</button>
+        </div>
+        <div class="tooltip-body">
+            <div class="tt-row"><span class="tt-label">Broker:</span><span class="tt-value" id="tt-broker">-</span></div>
+            <div class="tt-row"><span class="tt-label">Pax:</span><span class="tt-value" id="tt-pax">-</span></div>
+            <div class="tt-row"><span class="tt-label">Bruto:</span><span class="tt-value" id="tt-bruto">-</span></div>
+            <div class="tt-row"><span class="tt-label">Comisiones:</span><span class="tt-value" id="tt-comisiones">-</span></div>
+            <div class="tt-row highlight-row"><span class="tt-label">Neto:</span><span class="tt-value tt-neto" id="tt-neto">-</span></div>
+            <div class="tt-divider"></div>
+            <div class="tt-row tt-notes-row"><span class="tt-label">Notas:</span><p class="tt-notes" id="tt-notas">-</p></div>
+            <div class="tt-divider"></div>
+            <div class="tt-row" style="justify-content:center;">
+                <button id="tt-print-receipt" class="print-receipt-btn">🖨️ Recibo Tasa Turística</button>
+            </div>
+            <div class="tt-divider"></div>
+            <!-- Admin/Tablet CRUD buttons -->
+            <div class="tt-row tt-crud-row">
+                <button id="tt-edit-booking" class="tt-crud-btn tt-edit-btn">✏️ Editar</button>
+                <button id="tt-delete-booking" class="tt-crud-btn tt-delete-btn">🗑️ Eliminar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Booking Form Modal (Add / Edit) -->
+    <div id="booking-modal" class="receipt-modal-overlay hidden">
+        <div class="booking-modal-box">
+            <div class="booking-modal-header">
+                <h2 id="booking-modal-title">Reserva</h2>
+                <button class="modal-close-x" onclick="document.getElementById('booking-modal').classList.add('hidden')">✕</button>
+            </div>
+            <form id="booking-form" autocomplete="off">
+                <div class="booking-form-grid">
+                    <div class="bf-field bf-full">
+                        <label class="bf-label" for="bf-apt">Alojamiento *</label>
+                        <select id="bf-apt" class="bf-input" required>
+                            <option value="">Seleccionar…</option>
+                            <option value="Loft">Loft</option>
+                            <option value="1st floor">1st floor</option>
+                        </select>
+                    </div>
+                    <div class="bf-field">
+                        <label class="bf-label" for="bf-entrada">Entrada *</label>
+                        <input type="date" id="bf-entrada" class="bf-input" required>
+                    </div>
+                    <div class="bf-field">
+                        <label class="bf-label" for="bf-salida">Salida *</label>
+                        <input type="date" id="bf-salida" class="bf-input" required>
+                    </div>
+                    <div class="bf-field">
+                        <label class="bf-label" for="bf-broker">Canal</label>
+                        <input type="text" id="bf-broker" class="bf-input">
+                    </div>
+                    <div class="bf-field">
+                        <label class="bf-label" for="bf-pax">Pax</label>
+                        <input type="number" id="bf-pax" class="bf-input" min="1" value="1">
+                    </div>
+                    <div class="bf-field">
+                        <label class="bf-label" for="bf-bruto">Bruto (€)</label>
+                        <input type="number" id="bf-bruto" class="bf-input" step="0.01">
+                    </div>
+                    <div class="bf-field">
+                        <label class="bf-label" for="bf-comisiones">Comisiones (€)</label>
+                        <input type="number" id="bf-comisiones" class="bf-input" step="0.01">
+                    </div>
+                    <div class="bf-field bf-full">
+                        <label class="bf-label" for="bf-neto">Neto (€)</label>
+                        <input type="number" id="bf-neto" class="bf-input bf-neto-field" step="0.01">
+                    </div>
+                    <div class="bf-field bf-full">
+                        <label class="bf-label" for="bf-notas">Notas</label>
+                        <textarea id="bf-notas" class="bf-input bf-textarea" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="booking-form-actions">
+                    <button type="submit" class="bf-submit-btn">💾 Guardar</button>
+                    <button type="button" id="booking-modal-cancel-btn" class="bf-cancel-btn">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Receipt, Config, Registry Modals (Shared with admin) -->
+    <!-- (Re-using existing HTML structure from admin.html for consistency) -->
+    <div id="receipt-modal" class="receipt-modal-overlay hidden">
+        <div class="receipt-modal-box">
+            <div id="receipt-printable">
+                <div class="receipt-header">
+                    <div class="receipt-logo-container"><img src="logo.png" alt="Logo" class="receipt-logo"></div>
+                    <div class="receipt-header-text">
+                        <h2 id="r-title-txt">Recibo</h2>
+                        <div class="receipt-id-box">Nº <span id="r-id">-</span></div>
+                    </div>
+                </div>
+                <div class="receipt-body">
+                    <div class="receipt-row"><span class="r-label" id="r-lbl-apt">Apt:</span><span class="r-value" id="r-apt">-</span></div>
+                    <div class="receipt-row"><span class="r-label" id="r-lbl-checkin">In:</span><span class="r-value" id="r-checkin">-</span></div>
+                    <div class="receipt-row"><span class="r-label" id="r-lbl-checkout">Out:</span><span class="r-value" id="r-checkout">-</span></div>
+                    <div class="receipt-row"><span class="r-label" id="r-lbl-pax">Pax (>16):</span><input type="number" id="r-pax" class="r-value-input" min="0" value="0"></div>
+                    <div class="receipt-row"><span class="r-label" id="r-lbl-nights">Noches:</span><span class="r-value" id="r-nights">-</span></div>
+                    <div class="receipt-row"><span class="r-label" id="r-lbl-rate">Tarifa:</span><span class="r-value" id="r-rate-txt">1,75 €</span></div>
+                    <div class="receipt-divider"></div>
+                    <div class="receipt-row receipt-total-row"><span class="r-label" id="r-lbl-total">TOTAL:</span><span class="r-value r-total" id="r-total">-</span></div>
+                </div>
+                <div class="receipt-footer"><p id="r-footer-txt">Gracias.</p></div>
+            </div>
+            <div class="receipt-actions no-print">
+                <select id="receipt-lang-select" class="action-btn" style="flex:0.5"><option value="es">ES</option><option value="en">EN</option></select>
+                <button id="receipt-print-btn" class="action-btn">🖨️ <span id="r-btn-print">Imprimir</span></button>
+                <button id="receipt-close-btn" class="action-btn secondary-btn"><span id="r-btn-close">Cerrar</span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Registry & Config (simpler for tablet but fully functional) -->
+    <div id="config-modal" class="receipt-modal-overlay hidden">
+        <div class="receipt-modal-box" style="max-width:400px;padding-bottom:0">
+            <div style="padding:1.5rem">
+                <div class="receipt-header"><h2>Tasa</h2></div>
+                <div class="receipt-body">
+                    <label class="r-label" for="config-tax-rate">Tarifa (€):</label>
+                    <input type="number" id="config-tax-rate" class="bf-input" step="0.01" min="0" value="1.75">
+                    <div class="receipt-divider"></div>
+                    <button id="config-reset-btn" class="action-btn" style="width:100%;color:#ff7b72">Reset Contador</button>
+                </div>
+            </div>
+            <div class="receipt-actions no-print">
+                <button id="config-save-btn" class="action-btn">Guardar</button>
+                <button id="config-close-btn" class="action-btn secondary-btn">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="registry-modal" class="receipt-modal-overlay hidden">
+        <div class="receipt-modal-box" style="max-width:800px;padding:2rem;display:flex;flex-direction:column;max-height:90vh">
+            <div class="receipt-header" style="flex-shrink:0;align-items:center;border-bottom:none">
+                <h2>Registro</h2>
+                <div style="display:flex;gap:10px">
+                    <button id="registry-export-btn" class="action-btn">📥 CSV</button>
+                    <button id="registry-close-btn" class="action-btn secondary-btn">X</button>
+                </div>
+            </div>
+            <div class="registry-summary" style="display:flex;gap:20px;margin:1.5rem 0">
+                <div style="flex:1;background:#f0f4ff;padding:1rem">P1: <span id="reg-total-p1">0,00 €</span></div>
+                <div style="flex:1;background:#fff4ec;padding:1rem">P2: <span id="reg-total-p2">0,00 €</span></div>
+            </div>
+            <div style="flex-grow:1;overflow-y:auto">
+                <table style="width:100%;border-collapse:collapse;text-align:left">
+                    <thead><tr><th>ID</th><th>In</th><th>Apt</th><th>Pax</th><th>Noch</th><th>Total</th></tr></thead>
+                    <tbody id="registry-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reports Modal -->
+    <div id="reports-modal" class="receipt-modal-overlay hidden">
+        <div class="receipt-modal-box" style="max-width:900px; padding:2rem; display:flex; flex-direction:column; max-height:90vh; background:#ffffff; color:#1a1a2e; border:1px solid #ddd;">
+            <div class="receipt-header" style="flex-shrink:0; align-items:center; border-bottom:1px solid #eee; margin-bottom:1rem; background:transparent;">
+                <h2 style="font-size:1.5rem; color:#1a1a2e;">📊 Informe de Ingresos y Ocupación</h2>
+                <div style="display:flex; gap:12px; align-items:center;">
+                    <select id="reports-month" class="action-btn" style="padding:6px 12px; background:#f0f4ff; border-color:#d1e0ff; color:#1a1a2e;"></select>
+                    <select id="reports-year" class="action-btn" style="padding:6px 12px; background:#f0f4ff; border-color:#d1e0ff; color:#1a1a2e;"></select>
+                    <button id="reports-close-btn" class="action-btn" style="padding:6px 16px; background:#e0e0ed; border-color:#ccc; color:#1a1a2e; font-weight:600;">Cerrar</button>
+                </div>
+            </div>
+
+            <div style="flex-grow:1; overflow-y:auto; padding-right:8px;">
+                <table style="width:100%; border-collapse:collapse; text-align:left; font-size:0.92rem; color:#1a1a2e;">
+                    <thead style="position:sticky; top:0; background:#f9fafb; z-index:1; border-bottom:2px solid #eaecf0;">
+                        <tr>
+                            <th style="padding:14px 10px; color:#475467; font-weight:700;">Apartamento</th>
+                            <th style="padding:14px 10px; text-align:right; color:#475467; font-weight:700;">Bruto</th>
+                            <th style="padding:14px 10px; text-align:right; color:#475467; font-weight:700;">Neto</th>
+                            <th style="padding:14px 10px; text-align:right; color:#475467; font-weight:700;">Comisiones</th>
+                            <th style="padding:14px 10px; text-align:right; color:#475467; font-weight:700;">% Com.</th>
+                            <th style="padding:14px 10px; text-align:center; color:#475467; font-weight:700;">Día (Noches)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reports-table-body"></tbody>
+                    <tfoot id="reports-table-foot" style="border-top:2px solid #1a1a2e; font-weight:700; background:#f0f4ff;"></tfoot>
+                </table>
+            </div>
+
+            <!-- New: Annual Accumulated Section -->
+            <div style="margin-top:20px; border-top:1px solid #f2f4f7; padding-top:15px;">
+                <h3 id="reports-annual-title" style="font-size:1.1rem; color:#1570ef; margin-bottom:10px; font-weight:700;">📈 Acumulado Anual</h3>
+                <table style="width:100%; border-collapse:collapse; text-align:left; font-size:0.85rem; color:#101828;">
+                    <thead style="background:#f9fafb;">
+                        <tr>
+                            <th style="padding:8px 5px; color:#475467; font-weight:700;">Apartamento</th>
+                            <th style="padding:8px 5px; text-align:right; color:#475467; font-weight:700;">B. Anual</th>
+                            <th style="padding:8px 5px; text-align:right; color:#475467; font-weight:700;">N. Anual</th>
+                            <th style="padding:8px 5px; text-align:right; color:#475467; font-weight:700;">Días</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reports-annual-body"></tbody>
+                </table>
+            </div>
+            
+            <div style="margin-top:1.5rem; padding:1rem; border-radius:12px; background:linear-gradient(135deg, rgba(88,166,255,0.08), rgba(163,113,247,0.08)); border:1px solid #30363d;">
+                <p style="font-size:0.85rem; color:#8b949e; line-height:1.4; margin:0;">
+                    * <strong>Criterio de Informe</strong>: Las noches se dividen proporcionalmente entre meses. 
+                    Las comisiones e ingresos se reparten equitativamente por estancia.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom JS (Universal) -->
+    <script src="app.js?v=2.1"></script>
+</body>
+
+</html>

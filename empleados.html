@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendario Reservas — Vista</title>
+
+    <!-- FullCalendar CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Firebase SDKs (compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+
+    <!-- Session Check -->
+    <script>
+        if (sessionStorage.getItem('auth') !== 'true') window.location.href = 'index.html';
+        window.PAGE_MODE = 'readonly';
+        
+        firebase.auth().onAuthStateChanged(user => {
+            if (!user) {
+                sessionStorage.removeItem('auth');
+                window.location.href = 'index.html';
+            }
+        });
+    </script>
+
+    <!-- FullCalendar JS -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+</head>
+
+<body class="dark-theme">
+    <div class="app-container">
+
+        <header class="header">
+            <div class="header-left">
+                <h1>Apartment Bookings</h1>
+                <p class="subtitle">📡 Datos en tiempo real · Actualización automática</p>
+                <div class="header-actions">
+                    <button id="import-notes-btn" class="action-btn">Import Notes</button>
+                    <input type="file" id="import-file" accept=".json" hidden>
+                </div>
+            </div>
+
+            <!-- Legend -->
+            <div class="apt-legend">
+                <div class="legend-item">
+                    <span class="legend-dot" style="background:var(--color-apt-1)"></span>
+                    <span>Loft</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot" style="background:var(--color-apt-2)"></span>
+                    <span>1st floor</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="calendar-wrapper">
+            <div id="calendar"></div>
+        </div>
+
+    </div>
+
+    <!-- Tooltip (restricted — no financial data) -->
+    <div id="booking-tooltip" class="custom-tooltip hidden">
+        <div class="tooltip-header">
+            <span class="apt-badge" id="tt-apt">Apartamento</span>
+            <div class="tt-dates" id="tt-dates">12 Oct - 15 Oct</div>
+        </div>
+        <div class="tooltip-body">
+            <div class="tt-row">
+                <span class="tt-label">Broker:</span>
+                <span class="tt-value" id="tt-broker">-</span>
+            </div>
+            <div class="tt-row">
+                <span class="tt-label">Personas (Pax):</span>
+                <span class="tt-value" id="tt-pax">-</span>
+            </div>
+            <div class="tt-divider"></div>
+            <div class="tt-row tt-notes-row">
+                <span class="tt-label">Notas:</span>
+                <p class="tt-notes" id="tt-notas">-</p>
+            </div>
+            <div class="tt-divider"></div>
+            <div class="tt-row tt-notes-row">
+                <span class="tt-label">Notas del admin:</span>
+                <p class="tt-notes" id="tt-local-note-display">-</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom JS -->
+    <script src="app.js?v=2.0"></script>
+</body>
+</html>

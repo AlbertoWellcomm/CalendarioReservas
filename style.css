@@ -94,6 +94,16 @@ body {
 }
 
 /* Calendar Styling overrides for FullCalendar in Dark Mode */
+#calendar {
+    flex-grow: 1;
+    background: #fff;
+    border-radius: 12px;
+    padding: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    border: 1px solid var(--border-color);
+    touch-action: pan-y; /* Prevent browser swipe-to-back/forward */
+}
+
 .calendar-wrapper {
     background: var(--card-bg);
     border-radius: 16px;

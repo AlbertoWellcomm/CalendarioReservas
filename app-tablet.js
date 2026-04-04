@@ -795,29 +795,33 @@ document.addEventListener('DOMContentLoaded', () => {
     // ============================
     // SWIPE GESTURE NAVIGATION
     // ============================
-    let touchstartX = 0;
-    let touchendX = 0;
+    let pointerStartX = 0;
+    let pointerEndX = 0;
 
-    calendarEl.addEventListener('touchstart', e => {
-        touchstartX = e.changedTouches[0].screenX;
+    // Use Pointer Events for universal compatibility (Mobiles + Touch Laptops)
+    calendarEl.addEventListener('pointerdown', e => {
+        pointerStartX = e.clientX;
     }, { passive: true });
 
-    calendarEl.addEventListener('touchend', e => {
-        touchendX = e.changedTouches[0].screenX;
+    calendarEl.addEventListener('pointerup', e => {
+        pointerEndX = e.clientX;
         handleSwipe();
     }, { passive: true });
 
     function handleSwipe() {
-        const threshold = 75; // Minimum horizontal distance to count as a swipe
-        const diff = touchendX - touchstartX;
+        const threshold = 50; // Threshold for a responsive swipe
+        const diff = pointerEndX - pointerStartX;
         
+        // Debugging (optional)
+        console.log(`Swipe detected: DeltaX = ${diff}`);
+
         if (Math.abs(diff) < threshold) return;
 
         if (diff > 0) {
-            // Swipe Right (finger moves →) : Show Previous Month
+            // Swipe Right (finger moves →) : Previous Month
             if (calendar) calendar.prev();
         } else {
-            // Swipe Left (finger moves ←) : Show Next Month
+            // Swipe Left (finger moves ←) : Next Month
             if (calendar) calendar.next();
         }
     }

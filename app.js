@@ -229,6 +229,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     center: 'title',
                     right:  'dayGridMonth,dayGridWeek'
                 },
+                buttonText: {
+                    today: 'Hoy',
+                    month: 'Mes',
+                    week: 'Semana'
+                },
                 events: events,
                 // Handle both Mouse and Touch
                 eventMouseEnter: info => {

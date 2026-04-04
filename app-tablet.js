@@ -49,6 +49,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 center: 'title',
                 right: 'dayGridMonth,dayGridWeek'
             },
+            buttonText: {
+                today: 'Hoy',
+                month: 'Mes',
+                week: 'Semana'
+            },
             events: events,
             eventClick: (info) => {
                 handleEventClick(info);

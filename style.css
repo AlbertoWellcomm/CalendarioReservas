@@ -96,12 +96,33 @@ body {
 /* Calendar Styling overrides for FullCalendar in Dark Mode */
 #calendar {
     flex-grow: 1;
-    background: #fff;
+    background: var(--b-dark);
     border-radius: 12px;
     padding: 10px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
     border: 1px solid var(--border-color);
     touch-action: pan-y; /* Prevent browser swipe-to-back/forward */
+}
+
+/* FullCalendar overrides for Dark Mode */
+.fc .fc-col-header-cell-cushion,
+.fc .fc-daygrid-day-number,
+.fc .fc-list-day-text,
+.fc .fc-list-day-side-text {
+    color: var(--text-primary) !important;
+    text-decoration: none !important;
+}
+
+.fc .fc-toolbar-title {
+    color: var(--text-primary) !important;
+}
+
+.fc td, .fc th {
+    border-color: var(--border-color) !important;
+}
+
+.fc-theme-standard .fc-scrollgrid {
+    border-color: var(--border-color) !important;
 }
 
 .calendar-wrapper {

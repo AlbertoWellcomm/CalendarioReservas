@@ -35,6 +35,11 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
     let calendar;
+    let allBookings = [];
+    let unsubscribeBookings = null;
+    let currentReceiptLang = 'es';
+    let receiptActiveData = {};
+    let currentNights = 1;
 
     // Initialize Calendar
     function initCalendar(events = []) {
@@ -209,6 +214,107 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         initCalendar(allEvents);
+    }
+    
+    // Helper to format dates for FullCalendar
+    function formatDateISO(date) {
+        if (!date) return '';
+        const d = new Date(date);
+        return d.toISOString().split('T')[0];
+    }
+    
+    // ── Firebase helpers ──────────────────────────────────────────────────────
+    function initFirebaseSync() {
+        auth.onAuthStateChanged(async user => {
+            if (user) {
+                console.log('Tablet: Autenticado como:', user.email);
+                
+                // Fetch and listen for global config (tax rate)
+                db.collection('settings').doc('global_config').onSnapshot(doc => {
+                    if (doc.exists) {
+                        const data = doc.data();
+                        if (data.tax_rate !== undefined) {
+                            RATE_PER_PERSON_NIGHT = parseFloat(data.tax_rate);
+                            if (receiptModal && !receiptModal.classList.contains('hidden')) updateReceiptTotal();
+                        }
+                    }
+                });
+
+                subscribeToBookings();
+            } else {
+                console.warn('Tablet: Usuario no autenticado.');
+                if (unsubscribeBookings) {
+                    unsubscribeBookings();
+                    unsubscribeBookings = null;
+                }
+                updateCalendarEvents([]);
+            }
+        });
+    }
+
+    function subscribeToBookings() {
+        if (typeof db === 'undefined') { updateCalendarEvents([]); return; }
+        if (unsubscribeBookings) unsubscribeBookings();
+
+        unsubscribeBookings = db.collection('bookings')
+            .orderBy('entrada', 'asc')
+            .onSnapshot(snapshot => {
+                const events = [];
+                allBookings = []; 
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    allBookings.push({ id: doc.id, ...data });
+                    const ev = bookingToEvent(doc.id, data);
+                    if (ev) events.push(ev);
+                });
+                updateCalendarEvents(events);
+            }, err => {
+                console.error('Firestore Tablet:', err);
+                updateCalendarEvents([]);
+            });
+    }
+
+    function bookingToEvent(id, data) {
+        const aptStr = data.apt || '';
+        const aptKey = aptStr.toLowerCase().replace(/\s+/g, '_');
+        const color  = aptColors[aptKey] || aptColors['default'];
+
+        const startDate = data.entrada ? new Date(data.entrada) : null;
+        const endDate   = data.salida  ? new Date(data.salida)  : null;
+        if (!startDate || !endDate || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return null;
+
+        const calEnd = new Date(endDate);
+        calEnd.setDate(calEnd.getDate() + 1);
+
+        return {
+            id: id,
+            title: `${aptStr} (${data.pax || '?'} Pax)`,
+            start: formatDateISO(startDate),
+            end:   formatDateISO(calEnd),
+            allDay: true,
+            backgroundColor: color,
+            borderColor:     color,
+            extendedProps: {
+                firestoreId: id,
+                apt:         aptStr,
+                salidaDate:  endDate.toISOString(),
+                pax:         data.pax,
+                bruto:       data.bruto,
+                comisiones:  data.comisiones,
+                neto:        data.neto,
+                notas:       data.notas,
+                broker:      data.broker
+            }
+        };
+    }
+
+    function updateCalendarEvents(events) {
+        if (calendar) {
+            calendar.removeAllEvents();
+            calendar.addEventSource(events);
+        } else {
+            initCalendar(events);
+        }
     }
     
     // Parse Date helper for various inputs from SheetJs
@@ -406,23 +512,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // ============================
     // TOURISTIC TAX RECEIPT LOGIC
     // ============================
-    let RATE_PER_PERSON_NIGHT = 1.75; // Will be sync'ed from Firestore
+    let RATE_PER_PERSON_NIGHT = 1.75; // Sync'ed from Firestore in initFirebaseSync
     const MAX_NIGHTS = 7;
-
-    // Fetch and listen for global config (tax rate) in tablet view
-    auth.onAuthStateChanged(user => {
-        if (user) {
-            db.collection('settings').doc('global_config').onSnapshot(doc => {
-                if (doc.exists) {
-                    const data = doc.data();
-                    if (data.tax_rate !== undefined) {
-                        RATE_PER_PERSON_NIGHT = parseFloat(data.tax_rate);
-                        if (receiptModal && !receiptModal.classList.contains('hidden')) updateReceiptTotal();
-                    }
-                }
-            });
-        }
-    });
 
     const receiptModal = document.getElementById('receipt-modal');
     const receiptPrintBtn = document.getElementById('receipt-print-btn');
@@ -501,9 +592,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    let currentReceiptLang = 'es';
-    let receiptActiveData = { apt: '', startISO: '', salidaISO: '' };
-
     const langSelect = document.getElementById('receipt-lang-select');
     if (langSelect) {
         langSelect.addEventListener('change', (e) => {
@@ -541,8 +629,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const loc = receiptI18n[currentReceiptLang].locale;
         return d.toLocaleDateString(loc, { day: '2-digit', month: '2-digit', year: 'numeric' });
     }
-
-    let currentNights = 0;
 
     // Recalculates total based on current input pax and nights
     function updateReceiptTotal() {
@@ -789,8 +875,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Initial empty Calendar
+    // Initial empty Calendar & Start Sync
     initCalendar();
+    initFirebaseSync();
 
     // ============================
     // SWIPE GESTURE NAVIGATION

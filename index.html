@@ -13,88 +13,138 @@
     <script src="firebase-config.js"></script>
 
     <style>
+        :root {
+            --primary: #58a6ff;
+            --accent: #a371f7;
+            --bg: #0d1117;
+            --surface: #161b22;
+            --border: #30363d;
+            --text-color: #e6edf3;
+            --radius: 16px;
+        }
+
         body {
             display: flex;
             height: 100vh;
             align-items: center;
             justify-content: center;
-            background: var(--bg);
+            background: radial-gradient(circle at top right, #1a1a2e, #0d1117);
             margin: 0;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Outfit', sans-serif;
             color: var(--text-color);
+            overflow: hidden;
         }
+
+        /* Animated background elements for 'Premium' feel */
+        body::before {
+            content: '';
+            position: absolute;
+            top: -20%;
+            left: -10%;
+            width: 400px;
+            height: 400px;
+            background: var(--primary);
+            filter: blur(120px);
+            opacity: 0.15;
+            z-index: 0;
+        }
+
         .portal-container {
-            background: var(--surface);
-            padding: 3rem;
+            position: relative;
+            z-index: 1;
+            background: rgba(22, 27, 34, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 3.5rem 2.5rem;
             border-radius: var(--radius);
-            border: 1px solid var(--border);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             text-align: center;
-            max-width: 450px;
+            max-width: 420px;
             width: 90%;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
+
+        .portal-logo {
+            width: 160px;
+            height: auto;
+            margin-bottom: 1.5rem;
+            filter: drop-shadow(0 0 15px rgba(255,255,255,0.1));
+        }
+
         .portal-title {
-            margin-bottom: 2rem;
-            font-size: 2rem;
-            color: var(--accent);
+            margin: 0 0 0.5rem;
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: -0.02em;
         }
+
+        .portal-subtitle {
+            font-size: 0.95rem;
+            color: #8b949e;
+            margin-bottom: 2.5rem;
+        }
+
         .portal-btn {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: 12px;
             width: 100%;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            background: #21262d;
-            border: 1px solid var(--border);
-            color: #c9d1d9;
-            font-size: 1.1rem;
-            border-radius: var(--radius);
+            padding: 0.9rem;
+            margin-bottom: 0.85rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 500;
+            border-radius: 12px;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
+
         .portal-btn:hover {
-            background: #30363d;
-            border-color: #8b949e;
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
         }
+
         .portal-btn-primary {
-            background: var(--accent);
-            color: #ffffff;
-            border-color: var(--accent);
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            border: none;
+            color: #fff;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
+
         .portal-btn-primary:hover {
-            background: #3f88ef;
-            border-color: #3f88ef;
-            color: #ffffff;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(37, 99, 235, 0.3);
         }
-        
-        /* Modal Styles overwritten slightly for portal */
-        .portal-modal-box {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 2rem;
-            max-width: 400px;
-            width: 90%;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.7);
+
+        /* Icon styling */
+        .portal-btn span {
+            font-size: 1.2rem;
         }
     </style>
 </head>
 <body>
     <div class="portal-container">
-        <h1 class="portal-title">Portal de Reservas</h1>
+        <img src="logo.png" alt="Logo Tarragona" class="portal-logo">
+        <h1 class="portal-title">Gestión de Reservas</h1>
+        <p class="portal-subtitle">Acceso exclusivo para personal autorizado</p>
         
         <button class="portal-btn" onclick="requestPassword('empleados.html')">
-            👥 Vista Empleados
+            <span>👥</span> Vista Empleados
         </button>
         
         <button class="portal-btn portal-btn-primary" onclick="requestPassword('admin.html')">
-            💻 Vista Admin PC
+            <span>💻</span> Vista Admin PC
         </button>
         
         <button class="portal-btn portal-btn-primary" onclick="requestPassword('tablet.html')">
-            📱 Vista Tablet
+            <span>📱</span> Vista Tablet
         </button>
     </div>
 

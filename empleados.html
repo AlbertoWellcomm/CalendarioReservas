@@ -49,6 +49,7 @@
                 <div class="header-actions">
                     <button id="import-notes-btn" class="action-btn">Import Notes</button>
                     <input type="file" id="import-file" accept=".json" hidden>
+                    <button class="action-btn" style="background:transparent;color:#ff7b72;border-color:#ff7b72;" onclick="firebase.auth().signOut().then(() => { sessionStorage.removeItem('auth'); window.location.href='index.html'; })">🚪 Salir</button>
                 </div>
             </div>
 

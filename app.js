@@ -73,6 +73,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const reportsTableFoot = document.getElementById('reports-table-foot');
     const reportsAnnualTitle= document.getElementById('reports-annual-title');
     const reportsAnnualBody = document.getElementById('reports-annual-body');
+    const reportsBrokerTitle= document.getElementById('reports-broker-title');
+    const reportsBrokerBody = document.getElementById('reports-broker-body');
 
     // ── State ─────────────────────────────────────────────────────────────────
     const aptColors = {
@@ -903,6 +905,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const stats = {}; // Monthly stats
         const yearlyStats = {}; // Annual stats
+        const yearlyBrokerStats = {}; // Annual broker stats
 
         allBookings.forEach(b => {
             const start = new Date(b.entrada);
@@ -929,16 +932,29 @@ document.addEventListener('DOMContentLoaded', () => {
             const nightsInYear = calculateNightsInYear(start, end, targetYear);
             if (nightsInYear > 0) {
                 const ratioY = nightsInYear / totalNights;
+                
                 const aptY = b.apt || 'Otro';
                 if (!yearlyStats[aptY]) yearlyStats[aptY] = { bruto: 0, neto: 0, nights: 0 };
                 yearlyStats[aptY].bruto += (parseFloat(b.bruto) || 0) * ratioY;
                 yearlyStats[aptY].neto += (parseFloat(b.neto) || 0) * ratioY;
                 yearlyStats[aptY].nights += nightsInYear;
+                
+                let rawBroker = (b.broker || 'Directo').trim();
+                let brokerY = rawBroker;
+                if (rawBroker.toLowerCase() === 'airbnb') brokerY = 'Airbnb';
+                else if (rawBroker.toLowerCase() === 'booking') brokerY = 'Booking';
+                else if (rawBroker === '') brokerY = 'Directo';
+                
+                if (!yearlyBrokerStats[brokerY]) yearlyBrokerStats[brokerY] = { bruto: 0, neto: 0, nights: 0 };
+                yearlyBrokerStats[brokerY].bruto += (parseFloat(b.bruto) || 0) * ratioY;
+                yearlyBrokerStats[brokerY].neto += (parseFloat(b.neto) || 0) * ratioY;
+                yearlyBrokerStats[brokerY].nights += nightsInYear;
             }
         });
 
         renderReportTable(stats);
         renderAnnualTable(yearlyStats, targetYear);
+        renderBrokerTable(yearlyBrokerStats, targetYear);
     }
 
     function calculateNightsInYear(start, end, year) {
@@ -967,6 +983,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td style="padding:12px 10px; text-align:right; font-weight:400; color:#475467;">${data.nights}</td>
             `;
             reportsAnnualBody.appendChild(tr);
+        });
+    }
+
+    function renderBrokerTable(yearlyBrokerStats, year) {
+        if (reportsBrokerTitle) reportsBrokerTitle.textContent = `📊 Acumulado Anual por Canal ${year}`;
+        if (!reportsBrokerBody) return;
+
+        reportsBrokerBody.innerHTML = '';
+        Object.entries(yearlyBrokerStats).forEach(([name, data]) => {
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid #f2f4f7';
+            tr.innerHTML = `
+                <td style="padding:12px 10px; font-weight:400; color:#101828;">${name}</td>
+                <td style="padding:12px 10px; text-align:right; font-weight:400; color:#475467;">${formatCurrency(data.bruto)}</td>
+                <td style="padding:12px 10px; text-align:right; font-weight:400; color:#1570ef;">${formatCurrency(data.neto)}</td>
+                <td style="padding:12px 10px; text-align:right; font-weight:400; color:#475467;">${data.nights}</td>
+            `;
+            reportsBrokerBody.appendChild(tr);
         });
     }
 

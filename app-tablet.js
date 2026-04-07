@@ -1026,9 +1026,201 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // ============================
+    // REPORTS LOGIC
+    // ============================
+    const reportsBtn       = document.getElementById('reports-btn');
+    const reportsModal     = document.getElementById('reports-modal');
+    const reportsCloseBtn  = document.getElementById('reports-close-btn');
+    const reportsMonthSel  = document.getElementById('reports-month');
+    const reportsYearSel   = document.getElementById('reports-year');
+    const reportsTableBody = document.getElementById('reports-table-body');
+    const reportsTableFoot = document.getElementById('reports-table-foot');
+    const reportsAnnualTitle= document.getElementById('reports-annual-title');
+    const reportsAnnualBody = document.getElementById('reports-annual-body');
+    const reportsBrokerTitle = document.getElementById('reports-broker-title');
+    const reportsBrokerBody = document.getElementById('reports-broker-body');
+
+    function initReports() {
+        if (!reportsBtn) return;
+
+        const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+        months.forEach((m, i) => {
+            const opt = document.createElement('option');
+            opt.value = i;
+            opt.textContent = m;
+            reportsMonthSel.appendChild(opt);
+        });
+
+        const currentYear = new Date().getFullYear();
+        for (let y = currentYear - 2; y <= currentYear + 2; y++) {
+            const opt = document.createElement('option');
+            opt.value = y;
+            opt.textContent = y;
+            reportsYearSel.appendChild(opt);
+        }
+
+        reportsMonthSel.value = new Date().getMonth();
+        reportsYearSel.value = currentYear;
+
+        reportsBtn.addEventListener('click', () => {
+            generateReport();
+            reportsModal.classList.remove('hidden');
+        });
+
+        reportsCloseBtn.addEventListener('click', () => reportsModal.classList.add('hidden'));
+        [reportsMonthSel, reportsYearSel].forEach(s => s.addEventListener('change', generateReport));
+    }
+
+    function generateReport() {
+        const targetMonth = parseInt(reportsMonthSel.value);
+        const targetYear = parseInt(reportsYearSel.value);
+
+        const stats = {}; 
+        const yearlyStats = {}; 
+        const yearlyBrokerStats = {}; 
+
+        allBookings.forEach(b => {
+            const start = new Date(b.entrada);
+            const end = new Date(b.salida);
+            if (isNaN(start) || isNaN(end)) return;
+
+            const totalNights = Math.round((end - start) / (1000 * 60 * 60 * 24));
+            if (totalNights <= 0) return;
+
+            const nightsInMonth = calculateNightsInMonth(start, end, targetMonth, targetYear);
+            if (nightsInMonth > 0) {
+                const ratio = nightsInMonth / totalNights;
+                const apt = b.apt || 'Otro';
+                if (!stats[apt]) stats[apt] = { bruto: 0, neto: 0, comisiones: 0, nights: 0 };
+                stats[apt].bruto += (parseFloat(b.bruto) || 0) * ratio;
+                stats[apt].neto += (parseFloat(b.neto) || 0) * ratio;
+                stats[apt].comisiones += (parseFloat(b.comisiones) || 0) * ratio;
+                stats[apt].nights += nightsInMonth;
+            }
+
+            const nightsInYear = calculateNightsInYear(start, end, targetYear);
+            if (nightsInYear > 0) {
+                const ratioY = nightsInYear / totalNights;
+                
+                const aptY = b.apt || 'Otro';
+                if (!yearlyStats[aptY]) yearlyStats[aptY] = { bruto: 0, neto: 0, nights: 0 };
+                yearlyStats[aptY].bruto += (parseFloat(b.bruto) || 0) * ratioY;
+                yearlyStats[aptY].neto += (parseFloat(b.neto) || 0) * ratioY;
+                yearlyStats[aptY].nights += nightsInYear;
+                
+                let rawBroker = (b.broker || 'Directo').trim();
+                let brokerY = rawBroker;
+                if (rawBroker.toLowerCase() === 'airbnb') brokerY = 'Airbnb';
+                else if (rawBroker.toLowerCase() === 'booking') brokerY = 'Booking';
+                else if (rawBroker === '') brokerY = 'Directo';
+                if (!yearlyBrokerStats[brokerY]) yearlyBrokerStats[brokerY] = { bruto: 0, neto: 0, nights: 0 };
+                yearlyBrokerStats[brokerY].bruto += (parseFloat(b.bruto) || 0) * ratioY;
+                yearlyBrokerStats[brokerY].neto += (parseFloat(b.neto) || 0) * ratioY;
+                yearlyBrokerStats[brokerY].nights += nightsInYear;
+            }
+        });
+
+        renderReportTable(stats);
+        renderAnnualTable(yearlyStats, targetYear);
+        renderBrokerTable(yearlyBrokerStats, targetYear);
+    }
+
+    function calculateNightsInYear(start, end, year) {
+        const yearStart = new Date(year, 0, 1);
+        const yearEnd = new Date(year + 1, 0, 1);
+        const overlapStart = new Date(Math.max(start, yearStart));
+        const overlapEnd = new Date(Math.min(end, yearEnd));
+        if (overlapStart < overlapEnd) return Math.round((overlapEnd - overlapStart) / (1000 * 60 * 60 * 24));
+        return 0;
+    }
+
+    function renderAnnualTable(yearlyStats, year) {
+        if (reportsAnnualTitle) reportsAnnualTitle.textContent = `📊 Acumulado Anual ${year}`;
+        if (!reportsAnnualBody) return;
+
+        reportsAnnualBody.innerHTML = '';
+        Object.entries(yearlyStats).forEach(([name, data]) => {
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid #f2f4f7';
+            tr.innerHTML = `
+                <td style="padding:12px 10px; font-weight:400; color:#101828;">${name}</td>
+                <td style="padding:12px 10px; text-align:right; font-weight:400; color:#475467;">${formatCurrency(data.bruto)}</td>
+                <td style="padding:12px 10px; text-align:right; font-weight:400; color:#1570ef;">${formatCurrency(data.neto)}</td>
+                <td style="padding:12px 10px; text-align:right; font-weight:400; color:#475467;">${data.nights}</td>
+            `;
+            reportsAnnualBody.appendChild(tr);
+        });
+    }
+
+    function renderBrokerTable(yearlyBrokerStats, year) {
+        if (reportsBrokerTitle) reportsBrokerTitle.textContent = `📊 Acumulado Anual por Canal ${year}`;
+        if (!reportsBrokerBody) return;
+
+        reportsBrokerBody.innerHTML = '';
+        Object.entries(yearlyBrokerStats).forEach(([name, data]) => {
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid #f2f4f7';
+            tr.innerHTML = `
+                <td style="padding:12px 10px; font-weight:400; color:#101828;">${name}</td>
+                <td style="padding:12px 10px; text-align:right; font-weight:400; color:#475467;">${formatCurrency(data.bruto)}</td>
+                <td style="padding:12px 10px; text-align:right; font-weight:400; color:#1570ef;">${formatCurrency(data.neto)}</td>
+                <td style="padding:12px 10px; text-align:right; font-weight:400; color:#475467;">${data.nights}</td>
+            `;
+            reportsBrokerBody.appendChild(tr);
+        });
+    }
+
+    function calculateNightsInMonth(start, end, month, year) {
+        const monthStart = new Date(year, month, 1);
+        const monthEnd = new Date(year, month + 1, 1);
+        const overlapStart = new Date(Math.max(start, monthStart));
+        const overlapEnd = new Date(Math.min(end, monthEnd));
+        if (overlapStart < overlapEnd) return Math.round((overlapEnd - overlapStart) / (1000 * 60 * 60 * 24));
+        return 0;
+    }
+
+    function renderReportTable(stats) {
+        reportsTableBody.innerHTML = '';
+        let totalB = 0, totalN = 0, totalC = 0, totalD = 0;
+
+        Object.entries(stats).forEach(([name, data]) => {
+            totalB += data.bruto;
+            totalN += data.neto;
+            totalC += data.comisiones;
+            totalD += data.nights;
+
+            const comPerc = data.bruto > 0 ? (data.comisiones / data.bruto * 100).toFixed(1) : '0.0';
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid #f2f4f7';
+            tr.innerHTML = `
+                <td style="padding:14px 10px; font-weight:400; color:#101828;">${name}</td>
+                <td style="padding:14px 10px; text-align:right; font-weight:400; color:#344054;">${formatCurrency(data.bruto)}</td>
+                <td style="padding:14px 10px; text-align:right; font-weight:400; color:#101828;">${formatCurrency(data.neto)}</td>
+                <td style="padding:14px 10px; text-align:right; color:#d92d20; font-weight:400;">${formatCurrency(data.comisiones)}</td>
+                <td style="padding:14px 10px; text-align:right; font-size:0.85rem; color:#667085; font-weight:400;">${comPerc}%</td>
+                <td style="padding:14px 10px; text-align:center; font-weight:400; color:#344054;">${data.nights}</td>
+            `;
+            reportsTableBody.appendChild(tr);
+        });
+
+        const totalComPerc = totalB > 0 ? (totalC / totalB * 100).toFixed(1) : '0.0';
+        reportsTableFoot.innerHTML = `
+            <tr style="background:#f9fafb;">
+                <td style="padding:14px 10px; font-weight:800; color:#1570ef;">TOTAL MES</td>
+                <td style="padding:14px 10px; text-align:right; font-weight:800; color:#101828;">${formatCurrency(totalB)}</td>
+                <td style="padding:14px 10px; text-align:right; font-weight:800; color:#1570ef;">${formatCurrency(totalN)}</td>
+                <td style="padding:14px 10px; text-align:right; font-weight:700; color:#d92d20;">${formatCurrency(totalC)}</td>
+                <td style="padding:14px 10px; text-align:right; font-size:0.85rem; color:#667085; font-weight:500;">${totalComPerc}%</td>
+                <td style="padding:14px 10px; text-align:center; font-weight:800; color:#101828;">${totalD}</td>
+            </tr>
+        `;
+    }
+
     // Initial empty Calendar & Start Sync
     initCalendar();
     initFirebaseSync();
+    initReports();
 
     // ============================
     // SWIPE GESTURE NAVIGATION

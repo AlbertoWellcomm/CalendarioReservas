@@ -152,7 +152,11 @@
 
                     <div class="bf-field">
                         <label class="bf-label" for="bf-broker">Canal / Broker</label>
-                        <input type="text" id="bf-broker" class="bf-input" placeholder="Airbnb, Booking…">
+                        <select id="bf-broker" class="bf-input">
+                            <option value="Directo">Directo</option>
+                            <option value="Airbnb">Airbnb</option>
+                            <option value="Booking">Booking</option>
+                        </select>
                     </div>
                     <div class="bf-field">
                         <label class="bf-label" for="bf-pax">Personas (Pax)</label>
@@ -326,6 +330,22 @@
                         </tr>
                     </thead>
                     <tbody id="reports-annual-body"></tbody>
+                </table>
+            </div>
+            
+            <!-- New: Annual Accumulated By Broker Section -->
+            <div style="margin-top:2rem; border-top:1px solid #f2f4f7; padding-top:1.5rem;">
+                <h3 id="reports-broker-title" style="font-size:1.1rem; color:#1570ef; margin-bottom:1rem; font-weight:700; letter-spacing:-0.02em;">📊 Acumulado Anual por Canal</h3>
+                <table style="width:100%; border-collapse:collapse; text-align:left; font-size:0.9rem; color:#101828;">
+                    <thead style="background:#f9fafb; border-bottom:1px solid #eaecf0;">
+                        <tr>
+                            <th style="padding:10px; color:#475467; font-weight:700;">Canal / Broker</th>
+                            <th style="padding:10px; text-align:right; color:#475467; font-weight:700;">Acumulado Bruto</th>
+                            <th style="padding:10px; text-align:right; color:#475467; font-weight:700;">Acumulado Neto</th>
+                            <th style="padding:10px; text-align:right; color:#475467; font-weight:700;">Días Totales</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reports-broker-body"></tbody>
                 </table>
             </div>
             

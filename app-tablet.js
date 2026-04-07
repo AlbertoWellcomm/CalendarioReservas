@@ -364,7 +364,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (bfNotas) bfNotas.value = data.notas || '';
         }
 
-        if (bookingModal) bookingModal.classList.remove('hidden');
+        if (bookingModal) { bookingModal.classList.remove('hidden'); if (bfApt) bfApt.focus(); }
     }
 
     function closeBookingModal() {
@@ -450,6 +450,10 @@ document.addEventListener('DOMContentLoaded', () => {
             await saveBooking(fd);
         });
     }
+
+    const bookingCancelBtn = document.getElementById('booking-modal-cancel-btn');
+    if (bookingCancelBtn) bookingCancelBtn.addEventListener('click', closeBookingModal);
+    if (bookingModal) bookingModal.addEventListener('click', e => { if (e.target === bookingModal) closeBookingModal(); });
 
     if (addBookingBtn) addBookingBtn.addEventListener('click', () => openBookingModal());
     

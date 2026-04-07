@@ -373,7 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (bfNotas)      bfNotas.value      = data.notas      || '';
         }
 
-        if (bookingModal) { bookingModal.classList.remove('hidden'); if (bfEntrada) bfEntrada.focus(); }
+        if (bookingModal) { bookingModal.classList.remove('hidden'); if (bfApt) bfApt.focus(); }
     }
 
     function closeBookingModal() {

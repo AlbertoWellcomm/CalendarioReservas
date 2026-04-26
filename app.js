@@ -373,6 +373,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (bfNotas)      bfNotas.value      = data.notas      || '';
         }
 
+        if (bfEntrada && bfSalida) {
+            if (bfEntrada.value) {
+                const d = new Date(bfEntrada.value);
+                if (!isNaN(d.getTime())) {
+                    d.setUTCDate(d.getUTCDate() + 1);
+                    bfSalida.min = d.toISOString().split('T')[0];
+                }
+            } else {
+                bfSalida.min = '';
+            }
+        }
+
         if (bookingModal) { bookingModal.classList.remove('hidden'); if (bfApt) bfApt.focus(); }
     }
 
@@ -391,6 +403,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (bfBruto)      bfBruto.addEventListener('input',      calcNeto);
     if (bfComisiones) bfComisiones.addEventListener('input', calcNeto);
+
+    function updateSalidaMin() {
+        if (!bfEntrada || !bfSalida || !bfEntrada.value) return;
+        const d = new Date(bfEntrada.value);
+        if (!isNaN(d.getTime())) {
+            d.setUTCDate(d.getUTCDate() + 1);
+            const minDate = d.toISOString().split('T')[0];
+            bfSalida.min = minDate;
+            if (bfSalida.value && bfSalida.value < minDate) {
+                bfSalida.value = minDate;
+            }
+        }
+    }
+    if (bfEntrada) bfEntrada.addEventListener('change', updateSalidaMin);
 
     if (bookingForm) {
         bookingForm.addEventListener('submit', async e => {

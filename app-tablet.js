@@ -934,6 +934,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let p1Total = 0, p1Count = 0, p2Total = 0, p2Count = 0;
             const currentYear = new Date().getFullYear();
+            currentFilteredReceipts = [];
 
             snapshot.forEach(doc => {
                 const r = doc.data();
@@ -942,6 +943,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const mYear = chkDate.getFullYear();
 
                 if (mYear === currentYear) {
+                    currentFilteredReceipts.push(r);
                     if (m >= 3 && m <= 9) { p1Total += r.total; p1Count++; }
                     else { p2Total += r.total; p2Count++; }
                 }

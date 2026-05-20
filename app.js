@@ -728,6 +728,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    let currentFilteredReceipts = [];
+
     async function openRegistry() {
         if (!registryTbody) return;
         registryTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;">Cargando...</td></tr>';
@@ -742,8 +744,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            let p1T=0, p1C=0, p2T=0, p2C=0;
+            const yr = new Date().getFullYear();
+            currentFilteredReceipts = [];
+
             snapshot.forEach(doc => {
                 const r = doc.data();
+                const m = new Date(r.checkin || r.dateEmitted).getMonth();
+                const mYear = new Date(r.checkin || r.dateEmitted).getFullYear();
+                
+                if (mYear === yr) {
+                    currentFilteredReceipts.push(r);
+                    if (m >= 3 && m <= 9) { p1T += r.total; p1C++; } else { p2T += r.total; p2C++; }
+                }
+
                 const tr = document.createElement('tr');
                 tr.style.borderBottom = '1px solid #f2f4f7';
                 tr.innerHTML = `
@@ -756,6 +770,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
                 registryTbody.appendChild(tr);
             });
+            
+            if (document.getElementById('reg-total-p1')) {
+                document.getElementById('reg-total-p1').textContent = p1T.toLocaleString('es-ES',{style:'currency',currency:'EUR'});
+                document.getElementById('reg-count-p1').textContent = `${p1C} recibos`;
+                document.getElementById('reg-total-p2').textContent = p2T.toLocaleString('es-ES',{style:'currency',currency:'EUR'});
+                document.getElementById('reg-count-p2').textContent = `${p2C} recibos`;
+            }
         } catch (e) {
             registryTbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:red;padding:20px;">Error: ${e.message}</td></tr>`;
         }
@@ -764,34 +785,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (registryBtn) registryBtn.addEventListener('click', openRegistry);
     if (registryCloseBtn) registryCloseBtn.addEventListener('click', () => registryModal?.classList.add('hidden'));
     if (registryModal) registryModal.addEventListener('click', e => { if (e.target === registryModal) registryModal.classList.add('hidden'); });
-
-    // ── Registry ──────────────────────────────────────────────────────────────
-
-    function openRegistry() {
-        if (!registryModal) return;
-        const yr   = new Date().getFullYear();
-        const all  = JSON.parse(localStorage.getItem('emitted_receipts') || '[]');
-        currentFilteredReceipts = all.filter(r => new Date(r.checkin || r.dateEmitted).getFullYear() === yr)
-                                     .sort((a,b) => new Date(b.dateEmitted) - new Date(a.dateEmitted));
-        let p1T=0, p1C=0, p2T=0, p2C=0;
-        registryTbody.innerHTML = '';
-        currentFilteredReceipts.forEach(r => {
-            const m = new Date(r.checkin || r.dateEmitted).getMonth();
-            if (m >= 3 && m <= 9) { p1T += r.total; p1C++; } else { p2T += r.total; p2C++; }
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td style="padding:10px;border-bottom:1px solid #e0e0e0">${r.id}</td><td style="padding:10px;border-bottom:1px solid #e0e0e0">${formatReceiptDate(r.checkin)}</td><td style="padding:10px;border-bottom:1px solid #e0e0e0">${r.apt}</td><td style="padding:10px;border-bottom:1px solid #e0e0e0">${r.pax}</td><td style="padding:10px;border-bottom:1px solid #e0e0e0">${r.nights}</td><td style="padding:10px;border-bottom:1px solid #e0e0e0;font-weight:600">${r.total.toLocaleString('es-ES',{style:'currency',currency:'EUR'})}</td>`;
-            registryTbody.appendChild(tr);
-        });
-        document.getElementById('reg-total-p1').textContent = p1T.toLocaleString('es-ES',{style:'currency',currency:'EUR'});
-        document.getElementById('reg-count-p1').textContent = `${p1C} recibos`;
-        document.getElementById('reg-total-p2').textContent = p2T.toLocaleString('es-ES',{style:'currency',currency:'EUR'});
-        document.getElementById('reg-count-p2').textContent = `${p2C} recibos`;
-        registryModal.classList.remove('hidden');
-    }
-
-    if (registryBtn)      registryBtn.addEventListener('click',      openRegistry);
-    if (registryCloseBtn) registryCloseBtn.addEventListener('click', () => registryModal.classList.add('hidden'));
-    if (registryModal)    registryModal.addEventListener('click',    e => { if (e.target === registryModal) registryModal.classList.add('hidden'); });
 
     if (registryExportBtn) {
         registryExportBtn.addEventListener('click', () => {

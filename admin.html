@@ -207,7 +207,7 @@
                     <div class="receipt-row"><span class="r-label" id="r-lbl-checkin">Check-in:</span><span class="r-value" id="r-checkin">-</span></div>
                     <div class="receipt-row"><span class="r-label" id="r-lbl-checkout">Check-out:</span><span class="r-value" id="r-checkout">-</span></div>
                     <div class="receipt-row"><span class="r-label" id="r-lbl-pax">Nº de personas (&gt;16 años):</span><input type="number" id="r-pax" class="r-value-input" min="0" value="0"></div>
-                    <div class="receipt-row"><span class="r-label" id="r-lbl-nights">Noches (máx. 7):</span><span class="r-value" id="r-nights">-</span></div>
+                    <div class="receipt-row"><span class="r-label" id="r-lbl-nights">Noches (máx. 7):</span><input type="number" id="r-nights" class="r-value-input" min="1" max="7" value="1"></div>
                     <div class="receipt-row"><span class="r-label" id="r-lbl-rate">Tarifa por persona/noche:</span><span class="r-value" id="r-rate-txt">1,75 €</span></div>
                     <div class="receipt-divider"></div>
                     <div class="receipt-row receipt-total-row"><span class="r-label" id="r-lbl-total">TOTAL:</span><span class="r-value r-total" id="r-total">-</span></div>
@@ -362,7 +362,7 @@
     </div>
 
     <!-- Custom JS -->
-    <script src="app.js?v=2.3"></script>
+    <script src="app.js?v=2.4"></script>
 </body>
 
 </html>

@@ -606,7 +606,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateReceiptTotal() {
         const pax   = parseInt(document.getElementById('r-pax')?.value, 10) || 0;
-        const total = pax * currentNights * RATE_PER_PERSON_NIGHT;
+        const nights = parseInt(document.getElementById('r-nights')?.value, 10) || 0;
+        const total = pax * nights * RATE_PER_PERSON_NIGHT;
         const loc   = receiptI18n[currentReceiptLang].locale;
         const el    = document.getElementById('r-total');
         if (el) el.textContent = total.toLocaleString(loc, { style:'currency', currency:'EUR' });
@@ -634,7 +635,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (receiptModal && !receiptModal.classList.contains('hidden') && receiptActiveData.startISO) {
             document.getElementById('r-checkin').textContent  = formatReceiptDate(receiptActiveData.startISO);
             document.getElementById('r-checkout').textContent = formatReceiptDate(receiptActiveData.salidaISO);
-            document.getElementById('r-nights').textContent   = currentNights + (currentNights === MAX_NIGHTS ? t.maxSuffix : '');
             updateReceiptTotal();
         }
     }
@@ -687,12 +687,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (rateTxt) rateTxt.textContent = RATE_PER_PERSON_NIGHT.toLocaleString(t.locale, { style:'currency', currency:'EUR' });
         const paxEl = document.getElementById('r-pax');
         if (paxEl) paxEl.value = pax;
-        document.getElementById('r-nights').textContent = currentNights + (currentNights === MAX_NIGHTS ? t.maxSuffix : '');
+        const nightsEl = document.getElementById('r-nights');
+        if (nightsEl) nightsEl.value = currentNights;
         updateReceiptTotal();
         if (receiptModal) receiptModal.classList.remove('hidden');
     }
 
     document.getElementById('r-pax')?.addEventListener('input', updateReceiptTotal);
+    document.getElementById('r-nights')?.addEventListener('input', updateReceiptTotal);
     document.getElementById('receipt-lang-select')?.addEventListener('change', e => { currentReceiptLang = e.target.value; applyReceiptTranslations(); });
 
     if (ttPrintReceipt) {
@@ -707,7 +709,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (receiptPrintBtn) {
         receiptPrintBtn.addEventListener('click', async () => {
             const pax   = parseInt(document.getElementById('r-pax')?.value, 10) || 0;
-            const total = pax * currentNights * RATE_PER_PERSON_NIGHT;
+            const nights = parseInt(document.getElementById('r-nights')?.value, 10) || 0;
+            const total = pax * nights * RATE_PER_PERSON_NIGHT;
             const id    = document.getElementById('r-id').textContent;
 
             // Save to Firestore instead of localStorage
@@ -717,7 +720,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     apt: receiptActiveData.apt || '-',
                     checkin: receiptActiveData.startISO,
                     pax: pax,
-                    nights: currentNights,
+                    nights: nights,
                     total: total,
                     dateEmitted: new Date().toISOString()
                 });

@@ -798,7 +798,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (receiptModal && !receiptModal.classList.contains('hidden') && receiptActiveData.startISO) {
             document.getElementById('r-checkin').textContent = formatReceiptDate(receiptActiveData.startISO);
             document.getElementById('r-checkout').textContent = formatReceiptDate(receiptActiveData.salidaISO);
-            document.getElementById('r-nights').textContent = currentNights + (currentNights === MAX_NIGHTS ? t.maxSuffix : '');
             updateReceiptTotal();
         }
     }
@@ -813,12 +812,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Recalculates total based on current input pax and nights
     function updateReceiptTotal() {
-        const paxInput = document.getElementById('r-pax');
-        const pax = parseInt(paxInput.value, 10) || 0;
-        const total = pax * currentNights * RATE_PER_PERSON_NIGHT;
+        const pax = parseInt(document.getElementById('r-pax')?.value, 10) || 0;
+        const nights = parseInt(document.getElementById('r-nights')?.value, 10) || 0;
+        const total = pax * nights * RATE_PER_PERSON_NIGHT;
         const loc = receiptI18n[currentReceiptLang].locale;
-        document.getElementById('r-total').textContent =
-            total.toLocaleString(loc, { style: 'currency', currency: 'EUR' });
+        const el = document.getElementById('r-total');
+        if (el) el.textContent = total.toLocaleString(loc, { style: 'currency', currency: 'EUR' });
     }
 
     // Open the receipt modal and fill in the data
@@ -842,7 +841,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const paxInput = document.getElementById('r-pax');
         if (paxInput) paxInput.value = pax;
         
-        document.getElementById('r-nights').textContent   = currentNights + (currentNights === MAX_NIGHTS ? t.maxSuffix : '');
+        const nightsEl = document.getElementById('r-nights');
+        if (nightsEl) nightsEl.value = currentNights;
         
         updateReceiptTotal();
 
@@ -853,6 +853,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const rpaxInputEl = document.getElementById('r-pax');
     if (rpaxInputEl) {
         rpaxInputEl.addEventListener('input', updateReceiptTotal);
+    }
+    const rnightsInputEl = document.getElementById('r-nights');
+    if (rnightsInputEl) {
+        rnightsInputEl.addEventListener('input', updateReceiptTotal);
     }
 
     // Store current booking data on the print button for access at click time
@@ -884,9 +888,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Print receipt and save to Firestore
     if (receiptPrintBtn) {
         receiptPrintBtn.addEventListener('click', async () => {
-            const paxInput = document.getElementById('r-pax');
-            const pax = parseInt(paxInput.value, 10) || 0;
-            const total = pax * currentNights * RATE_PER_PERSON_NIGHT;
+            const pax = parseInt(document.getElementById('r-pax')?.value, 10) || 0;
+            const nights = parseInt(document.getElementById('r-nights')?.value, 10) || 0;
+            const total = pax * nights * RATE_PER_PERSON_NIGHT;
             const id = document.getElementById('r-id').textContent;
             
             try {
@@ -896,7 +900,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     apt: receiptActiveData.apt || '-',
                     checkin: receiptActiveData.startISO,
                     pax: pax,
-                    nights: currentNights,
+                    nights: nights,
                     total: total,
                     dateEmitted: new Date().toISOString()
                 });

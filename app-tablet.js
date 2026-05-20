@@ -918,9 +918,20 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let currentFilteredReceipts = [];
 
+    window.deleteReceipt = async function(docId) {
+        if (confirm('¿Estás seguro de que quieres eliminar este recibo?')) {
+            try {
+                await db.collection('receipts').doc(docId).delete();
+                openRegistry();
+            } catch (e) {
+                alert('Error al eliminar el recibo: ' + e.message);
+            }
+        }
+    };
+
     async function openRegistry() {
         if (!registryTbody) return;
-        registryTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;">Cargando...</td></tr>';
+        registryTbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;">Cargando...</td></tr>';
         registryModal?.classList.remove('hidden');
 
         try {
@@ -928,7 +939,7 @@ document.addEventListener('DOMContentLoaded', () => {
             registryTbody.innerHTML = '';
             
             if (snapshot.empty) {
-                registryTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;">No hay recibos registrados.</td></tr>';
+                registryTbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;">No hay recibos registrados.</td></tr>';
                 return;
             }
 
@@ -956,6 +967,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td style="padding:10px; border-bottom:1px solid #e0e0e0;">${r.pax}</td>
                     <td style="padding:10px; border-bottom:1px solid #e0e0e0;">${r.nights}</td>
                     <td style="padding:10px; border-bottom:1px solid #e0e0e0; font-weight:600;">${r.total.toLocaleString('es-ES', {style:'currency', currency:'EUR'})}</td>
+                    <td style="padding:10px; border-bottom:1px solid #e0e0e0; text-align:center;">
+                        <button onclick="deleteReceipt('${doc.id}')" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:#d92d20;" title="Eliminar recibo">🗑️</button>
+                    </td>
                 `;
                 registryTbody.appendChild(tr);
             });
@@ -966,7 +980,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('reg-count-p2').textContent = `${p2Count} recibos`;
 
         } catch (e) {
-            registryTbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:red;padding:10px;">Error: ${e.message}</td></tr>`;
+            registryTbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:red;padding:10px;">Error: ${e.message}</td></tr>`;
         }
     }
 

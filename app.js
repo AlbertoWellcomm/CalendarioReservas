@@ -728,7 +728,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    let currentFilteredReceipts = [];
 
     window.deleteReceipt = async function(docId) {
         if (confirm('¿Estás seguro de que quieres eliminar este recibo?')) {

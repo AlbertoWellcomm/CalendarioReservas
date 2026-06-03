@@ -578,10 +578,10 @@ body {
     body {
         margin: 1.5cm; /* Restores padding inside the printable area */
     }
-    body > *:not(#receipt-modal) {
+    body > *:not(#receipt-modal):not(#checkin-view-modal) {
         display: none !important;
     }
-    #receipt-modal {
+    #receipt-modal, #checkin-view-modal {
         position: static !important;
         background: none !important;
         backdrop-filter: none !important;

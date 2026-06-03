@@ -112,6 +112,15 @@
                 <button id="tt-print-receipt" class="print-receipt-btn">🖨️ Recibo Tasa Turística</button>
             </div>
             <div class="tt-divider"></div>
+            <div class="tt-row" id="tt-checkin-row" style="justify-content: space-between; align-items: center;">
+                <span class="tt-label">Check-in:</span>
+                <span class="tt-value" id="tt-checkin-status" style="font-size: 0.85rem; font-weight: 700; color: #ff7b72;">Cargando...</span>
+            </div>
+            <div class="tt-row" id="tt-checkin-buttons" style="gap: 8px; margin-top: 4px;">
+                <button id="tt-copy-checkin" class="print-receipt-btn" style="margin-top:0; font-size:0.8rem; padding:6px 10px; flex:1; background:linear-gradient(135deg, #1d4ed8, #2563eb);">🔗 Enlace</button>
+                <button id="tt-view-checkin" class="print-receipt-btn hidden" style="margin-top:0; font-size:0.8rem; padding:6px 10px; flex:1; background:linear-gradient(135deg, #047857, #10b981);">📄 Ficha</button>
+            </div>
+            <div class="tt-divider"></div>
             <!-- Admin CRUD buttons -->
             <div class="tt-row tt-crud-row">
                 <button id="tt-edit-booking" class="tt-crud-btn tt-edit-btn">✏️ Editar</button>
@@ -229,11 +238,20 @@
     <div id="config-modal" class="receipt-modal-overlay hidden">
         <div class="receipt-modal-box" style="max-width:400px;padding-bottom:0">
             <div id="config-printable" style="padding:2rem 2.4rem 1.5rem">
-                <div class="receipt-header"><h2 style="font-size:1.25rem">Configuración Tasa</h2></div>
+                <div class="receipt-header"><h2 style="font-size:1.25rem">Configuración General</h2></div>
                 <div class="receipt-body">
                     <div class="receipt-row" style="flex-direction:column;align-items:flex-start;gap:8px">
                         <label class="r-label" for="config-tax-rate">Tarifa Tasa Turística (€/noche):</label>
                         <input type="number" id="config-tax-rate" class="local-note-input" step="0.01" min="0" value="1.75" style="min-height:auto">
+                    </div>
+                    <div class="receipt-divider"></div>
+                    <div class="receipt-row" style="flex-direction:column;align-items:flex-start;gap:8px">
+                        <label class="r-label" for="config-admin-email">Email Receptor Check-in:</label>
+                        <input type="email" id="config-admin-email" class="local-note-input" placeholder="ejemplo@correo.com" style="min-height:auto">
+                    </div>
+                    <div class="receipt-row" style="flex-direction:column;align-items:flex-start;gap:8px">
+                        <label class="r-label" for="config-web3forms-key">Clave Web3Forms (Opcional):</label>
+                        <input type="text" id="config-web3forms-key" class="local-note-input" placeholder="Clave de web3forms.com" style="min-height:auto">
                     </div>
                     <div class="receipt-divider"></div>
                     <div class="receipt-row" style="flex-direction:column;align-items:flex-start;gap:8px">
@@ -361,8 +379,67 @@
         </div>
     </div>
 
+    <!-- Traveler Registration Sheet Viewer Modal -->
+    <div id="checkin-view-modal" class="receipt-modal-overlay hidden">
+        <div class="receipt-modal-box" style="max-width:600px; max-height:90vh; display:flex; flex-direction:column;">
+            <div id="checkin-printable" style="padding:2.5rem; flex-grow:1; overflow-y:auto; background:white; color:#1a1a2e; font-family:var(--font-family);">
+                <!-- Header -->
+                <div class="receipt-header" style="border-bottom: 2px solid #1a1a2e; margin-bottom:1.5rem; padding-bottom:1rem; background:transparent;">
+                    <div class="receipt-logo-container"><img src="logo.png" alt="Logo" class="receipt-logo" style="max-width:100px;"></div>
+                    <div class="receipt-header-text">
+                        <h2 style="font-size:1.2rem; font-weight:700; color:#1a1a2e; margin:0; text-transform:uppercase; letter-spacing:0.5px;">Parte de Entrada de Viajeros</h2>
+                        <div style="font-size:0.8rem; color:#555; margin-top:4px;">Real Decreto 933/2021</div>
+                    </div>
+                </div>
+                
+                <!-- Body details -->
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size:0.85rem; line-height:1.5;">
+                    <div style="grid-column: 1 / -1; background:#f0f4ff; padding:10px 14px; border-radius:8px; border:1px solid #d1e0ff; display:flex; justify-content:space-between; margin-bottom:10px;">
+                        <div><strong>Alojamiento:</strong> <span id="civ-apt">-</span></div>
+                        <div><strong>Entrada:</strong> <span id="civ-entrada">-</span></div>
+                        <div><strong>Salida:</strong> <span id="civ-salida">-</span></div>
+                    </div>
+                    
+                    <div style="grid-column: 1 / -1; font-weight:700; border-bottom:1px solid #ccc; padding-bottom:2px; margin-top:8px; color:#2563eb; text-transform:uppercase; font-size:0.75rem; letter-spacing:0.5px;">Datos del Viajero</div>
+                    <div><strong>Nombre Completo:</strong> <span id="civ-nombre">-</span></div>
+                    <div><strong>Email:</strong> <span id="civ-email">-</span></div>
+                    <div><strong>Teléfono:</strong> <span id="civ-telefono">-</span></div>
+                    <div><strong>Fecha de Nacimiento:</strong> <span id="civ-nacimiento">-</span></div>
+                    <div><strong>Sexo:</strong> <span id="civ-sexo">-</span></div>
+                    
+                    <div style="grid-column: 1 / -1; font-weight:700; border-bottom:1px solid #ccc; padding-bottom:2px; margin-top:8px; color:#2563eb; text-transform:uppercase; font-size:0.75rem; letter-spacing:0.5px;">Documento de Identificación</div>
+                    <div><strong>Tipo de Documento:</strong> <span id="civ-doc-tipo">-</span></div>
+                    <div><strong>Número de Documento:</strong> <span id="civ-doc-num">-</span></div>
+                    <div><strong>País de Expedición:</strong> <span id="civ-doc-pais">-</span></div>
+                    <div><strong>Fecha de Emisión:</strong> <span id="civ-doc-emision">-</span></div>
+                    
+                    <div style="grid-column: 1 / -1; font-weight:700; border-bottom:1px solid #ccc; padding-bottom:2px; margin-top:8px; color:#2563eb; text-transform:uppercase; font-size:0.75rem; letter-spacing:0.5px;">Dirección de Residencia</div>
+                    <div style="grid-column: 1 / -1;"><strong>Dirección:</strong> <span id="civ-dir-calle">-</span></div>
+                    <div><strong>Ciudad:</strong> <span id="civ-dir-ciudad">-</span></div>
+                    <div><strong>Código Postal:</strong> <span id="civ-dir-cp">-</span></div>
+                    <div><strong>Provincia:</strong> <span id="civ-dir-provincia">-</span></div>
+                    <div><strong>País de Residencia:</strong> <span id="civ-dir-pais">-</span></div>
+                    
+                    <!-- Signature Section -->
+                    <div style="grid-column: 1 / -1; display:flex; flex-direction:column; align-items:center; margin-top:20px; border:1px solid #ccc; border-radius:8px; padding:10px;">
+                        <span style="font-size:0.75rem; font-weight:600; color:#555; text-transform:uppercase; margin-bottom:8px;">Firma del Viajero</span>
+                        <img id="civ-signature-img" src="" alt="Firma digital" style="max-height:100px; max-width:100%; object-fit:contain; border:1px dashed #eee; background-color:#fafafa;">
+                    </div>
+                </div>
+                <div style="text-align:center; font-size:0.75rem; color:#777; margin-top:20px; border-top:1px dashed #ccc; padding-top:10px;">
+                    Presentado digitalmente el <span id="civ-submitted-at">-</span>
+                </div>
+            </div>
+            
+            <div class="receipt-actions no-print" style="background:#f7f8fa; border-top:1px solid #e0e0e0; padding:1rem 2.5rem; display:flex; gap:10px;">
+                <button id="checkin-print-btn" class="action-btn" style="flex:1; background:#2563eb; color:white; border:none; border-radius:7px; font-weight:600; cursor:pointer;">🖨️ Imprimir Ficha</button>
+                <button id="checkin-close-btn" class="action-btn secondary-btn" style="flex:1; background:#e0e0e0; color:#1a1a2e; border:none; border-radius:7px; font-weight:600; cursor:pointer;">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Custom JS -->
-    <script src="app.js?v=2.4"></script>
+    <script src="app.js?v=2.5"></script>
 </body>
 
 </html>

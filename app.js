@@ -76,6 +76,37 @@ document.addEventListener('DOMContentLoaded', () => {
     const reportsBrokerTitle= document.getElementById('reports-broker-title');
     const reportsBrokerBody = document.getElementById('reports-broker-body');
 
+    // Tourist Check-in Elements
+    const configAdminEmailInput = document.getElementById('config-admin-email');
+    const configWeb3formsKeyInput = document.getElementById('config-web3forms-key');
+    const ttCheckinStatus = document.getElementById('tt-checkin-status');
+    const ttCopyCheckin   = document.getElementById('tt-copy-checkin');
+    const ttViewCheckin   = document.getElementById('tt-view-checkin');
+
+    const checkinViewModal = document.getElementById('checkin-view-modal');
+    const checkinPrintBtn  = document.getElementById('checkin-print-btn');
+    const checkinCloseBtn  = document.getElementById('checkin-close-btn');
+
+    const civApt          = document.getElementById('civ-apt');
+    const civEntrada      = document.getElementById('civ-entrada');
+    const civSalida       = document.getElementById('civ-salida');
+    const civNombre       = document.getElementById('civ-nombre');
+    const civEmail        = document.getElementById('civ-email');
+    const civTelefono     = document.getElementById('civ-telefono');
+    const civNacimiento   = document.getElementById('civ-nacimiento');
+    const civSexo         = document.getElementById('civ-sexo');
+    const civDocTipo      = document.getElementById('civ-doc-tipo');
+    const civDocNum       = document.getElementById('civ-doc-num');
+    const civDocPais      = document.getElementById('civ-doc-pais');
+    const civDocEmision   = document.getElementById('civ-doc-emision');
+    const civDirCalle     = document.getElementById('civ-dir-calle');
+    const civDirCiudad    = document.getElementById('civ-dir-ciudad');
+    const civDirCp        = document.getElementById('civ-dir-cp');
+    const civDirProvincia = document.getElementById('civ-dir-provincia');
+    const civDirPais      = document.getElementById('civ-dir-pais');
+    const civSignatureImg = document.getElementById('civ-signature-img');
+    const civSubmittedAt  = document.getElementById('civ-submitted-at');
+
     // ── State ─────────────────────────────────────────────────────────────────
     const aptColors = {
         'loft':      'var(--color-apt-1)',
@@ -113,6 +144,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (data.tax_rate !== undefined) {
                             RATE_PER_PERSON_NIGHT = parseFloat(data.tax_rate);
                             if (receiptModal && !receiptModal.classList.contains('hidden')) updateReceiptTotal();
+                        }
+                        if (data.admin_email !== undefined && configAdminEmailInput) {
+                            configAdminEmailInput.value = data.admin_email || '';
+                        }
+                        if (data.web3forms_key !== undefined && configWeb3formsKeyInput) {
+                            configWeb3formsKeyInput.value = data.web3forms_key || '';
                         }
                     }
                 });
@@ -316,6 +353,32 @@ document.addEventListener('DOMContentLoaded', () => {
             if (ttSaveNote) { ttSaveNote.textContent = 'Guardar nota'; ttSaveNote.classList.remove('success'); }
         }
         if (ttLocalNoteDisplay) ttLocalNoteDisplay.textContent = savedNote || '-';
+
+        // Check tourist check-in status
+        if (ttCheckinStatus) {
+            ttCheckinStatus.textContent = 'Cargando...';
+            ttCheckinStatus.style.color = 'var(--text-secondary)';
+            if (ttViewCheckin) ttViewCheckin.classList.add('hidden');
+
+            db.collection('checkins').doc(currentBookingId).get()
+                .then(doc => {
+                    if (currentBookingId !== (props.firestoreId || info.event.id)) return;
+                    if (doc.exists) {
+                        ttCheckinStatus.textContent = 'Completado ✓';
+                        ttCheckinStatus.style.color = '#7ee787';
+                        if (ttViewCheckin) ttViewCheckin.classList.remove('hidden');
+                    } else {
+                        ttCheckinStatus.textContent = 'Pendiente';
+                        ttCheckinStatus.style.color = '#ff7b72';
+                        if (ttViewCheckin) ttViewCheckin.classList.add('hidden');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error fetching checkin status:', err);
+                    ttCheckinStatus.textContent = 'Error';
+                    ttCheckinStatus.style.color = '#ff7b72';
+                });
+        }
 
         tooltip.classList.remove('hidden');
         tooltip.style.left = `${info.jsEvent.pageX + 15}px`;
@@ -819,14 +882,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── Configuration ─────────────────────────────────────────────────────────
 
-    if (configBtn) configBtn.addEventListener('click', () => {
+    if (configBtn) configBtn.addEventListener('click', async () => {
         if (configTaxRateInput) configTaxRateInput.value = RATE_PER_PERSON_NIGHT;
+        try {
+            const config = await getGlobalConfig();
+            if (configAdminEmailInput) configAdminEmailInput.value = config.admin_email || '';
+            if (configWeb3formsKeyInput) configWeb3formsKeyInput.value = config.web3forms_key || '';
+        } catch(e) {
+            console.error('Error fetching global config:', e);
+        }
         if (configModal) configModal.classList.remove('hidden');
     });
     if (configCloseBtn) configCloseBtn.addEventListener('click', () => configModal?.classList.add('hidden'));
     if (configSaveBtn)  configSaveBtn.addEventListener('click',  async () => {
         const newRate = parseFloat(configTaxRateInput.value) || 1.75;
-        await updateGlobalConfig({ tax_rate: newRate });
+        const newEmail = configAdminEmailInput ? configAdminEmailInput.value.trim() : '';
+        const newKey = configWeb3formsKeyInput ? configWeb3formsKeyInput.value.trim() : '';
+        await updateGlobalConfig({ 
+            tax_rate: newRate,
+            admin_email: newEmail,
+            web3forms_key: newKey
+        });
         // UI updates automatically via onSnapshot
         configModal?.classList.add('hidden');
     });
@@ -1089,6 +1165,102 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td style="padding:14px 10px; text-align:center; font-weight:800; color:#101828;">${totalD}</td>
             </tr>
         `;
+    }
+
+    // Tourist Check-in actions
+    if (ttCopyCheckin) {
+        ttCopyCheckin.addEventListener('click', () => {
+            if (!currentBookingId) return;
+            const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
+            const checkinUrl = `${window.location.origin}${path}/checkin.html?bookingId=${currentBookingId}`;
+            
+            navigator.clipboard.writeText(checkinUrl)
+                .then(() => {
+                    const originalText = ttCopyCheckin.textContent;
+                    ttCopyCheckin.textContent = '¡Copiado! ✓';
+                    setTimeout(() => { ttCopyCheckin.textContent = originalText; }, 2000);
+                })
+                .catch(err => {
+                    alert('Error al copiar enlace: ' + err.message);
+                });
+        });
+    }
+
+    if (ttViewCheckin) {
+        ttViewCheckin.addEventListener('click', async () => {
+            if (!currentBookingId) return;
+            hideTooltip();
+            try {
+                const doc = await db.collection('checkins').doc(currentBookingId).get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    const guest = data.guest || {};
+                    const dir = guest.direccion || {};
+
+                    if (civApt) civApt.textContent = data.apt || '-';
+                    if (civEntrada) civEntrada.textContent = formatDateStringReadable(data.entrada);
+                    if (civSalida) civSalida.textContent = formatDateStringReadable(data.salida);
+                    
+                    if (civNombre) civNombre.textContent = guest.nombre || '-';
+                    if (civEmail) civEmail.textContent = guest.email || '-';
+                    if (civTelefono) civTelefono.textContent = guest.telefono || '-';
+                    if (civNacimiento) civNacimiento.textContent = formatDateStringReadable(guest.nacimiento);
+                    if (civSexo) civSexo.textContent = guest.sexo || '-';
+                    
+                    if (civDocTipo) civDocTipo.textContent = guest.docTipo || '-';
+                    if (civDocNum) civDocNum.textContent = guest.docNum || '-';
+                    if (civDocPais) civDocPais.textContent = guest.docPais || '-';
+                    if (civDocEmision) civDocEmision.textContent = formatDateStringReadable(guest.docEmision);
+                    
+                    if (civDirCalle) civDirCalle.textContent = dir.calle || '-';
+                    if (civDirCiudad) civDirCiudad.textContent = dir.ciudad || '-';
+                    if (civDirCp) civDirCp.textContent = dir.cp || '-';
+                    if (civDirProvincia) civDirProvincia.textContent = dir.provincia || '-';
+                    if (civDirPais) civDirPais.textContent = dir.pais || '-';
+
+                    if (civSignatureImg) civSignatureImg.src = data.signature || '';
+                    
+                    if (civSubmittedAt) {
+                        const date = data.submittedAt ? (data.submittedAt.toDate ? data.submittedAt.toDate() : new Date(data.submittedAt)) : null;
+                        civSubmittedAt.textContent = date ? date.toLocaleString('es-ES') : '-';
+                    }
+
+                    if (checkinViewModal) checkinViewModal.classList.remove('hidden');
+                } else {
+                    alert('No se encontraron datos de check-in para esta reserva.');
+                }
+            } catch (err) {
+                alert('Error al cargar la ficha de check-in: ' + err.message);
+            }
+        });
+    }
+
+    if (checkinCloseBtn) {
+        checkinCloseBtn.addEventListener('click', () => {
+            if (checkinViewModal) checkinViewModal.classList.add('hidden');
+        });
+    }
+
+    if (checkinViewModal) {
+        checkinViewModal.addEventListener('click', (e) => {
+            if (e.target === checkinViewModal) checkinViewModal.classList.add('hidden');
+        });
+    }
+
+    if (checkinPrintBtn) {
+        checkinPrintBtn.addEventListener('click', () => {
+            window.print();
+        });
+    }
+
+    function formatDateStringReadable(dateStr) {
+        if (!dateStr) return '-';
+        try {
+            const [year, month, day] = dateStr.split('-');
+            return `${day}/${month}/${year}`;
+        } catch(e) {
+            return dateStr;
+        }
     }
 
     // ── Init ──────────────────────────────────────────────────────────────────

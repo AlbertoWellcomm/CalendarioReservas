@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Viajeros - Check-in Online</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDKs (compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --surface-color: #161b22;
+            --border-color: #30363d;
+            --text-color: #e6edf3;
+            --text-secondary: #8b949e;
+            --accent: #58a6ff;
+            --accent-hover: #3182ce;
+            --success: #2ea44f;
+            --radius: 12px;
+            --font-family: 'Outfit', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-family);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1.5rem 1rem;
+        }
+
+        .container {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            max-width: 600px;
+            width: 100%;
+            padding: 2.5rem 2rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo {
+            max-width: 120px;
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #58a6ff, #a371f7);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .booking-info {
+            background: rgba(88, 166, 255, 0.08);
+            border: 1px solid rgba(88, 166, 255, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-around;
+            text-align: center;
+        }
+
+        .info-block span {
+            display: block;
+        }
+
+        .info-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+
+        .info-val {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .form-section-title {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin: 1.5rem 0 1rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 4px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 1.25rem;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input, select, textarea {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+        }
+
+        .signature-container {
+            margin-top: 0.5rem;
+            background-color: #ffffff;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 160px;
+            cursor: crosshair;
+            background-color: #ffffff;
+        }
+
+        .sig-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 6px;
+        }
+
+        .sig-hint {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .clear-btn {
+            background: transparent;
+            border: none;
+            color: #ff7b72;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        .clear-btn:hover {
+            background: rgba(255, 123, 114, 0.1);
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, #58a6ff, #a371f7);
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 1.5rem;
+            transition: opacity 0.2s, transform 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .submit-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Success screen */
+        .success-box {
+            text-align: center;
+            display: none;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .success-icon {
+            font-size: 4rem;
+            color: var(--success);
+            margin-bottom: 1.5rem;
+        }
+
+        .success-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: #fff;
+        }
+
+        .success-text {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 480px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+            .container {
+                padding: 1.5rem 1.25rem;
+            }
+        }
+        
+        .loading-overlay {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Loading Overlay -->
+        <div id="loading" class="loading-overlay">
+            <div class="spinner" style="display:block; width:40px; height:40px; border-width:4px; margin-bottom:1rem;"></div>
+            <p>Cargando información de la reserva...</p>
+        </div>
+
+        <!-- Form Box -->
+        <div id="form-box" style="display:none;">
+            <div class="header">
+                <h1>Registro de Viajeros</h1>
+                <p class="subtitle">Complete sus datos para formalizar el registro oficial de entrada</p>
+            </div>
+
+            <!-- Booking Info Card -->
+            <div class="booking-info">
+                <div class="info-block">
+                    <span class="info-label">Apartamento</span>
+                    <span class="info-val" id="info-apt">-</span>
+                </div>
+                <div class="info-block">
+                    <span class="info-label">Check-in</span>
+                    <span class="info-val" id="info-entrada">-</span>
+                </div>
+                <div class="info-block">
+                    <span class="info-label">Check-out</span>
+                    <span class="info-val" id="info-salida">-</span>
+                </div>
+            </div>
+
+            <form id="checkin-form">
+                <!-- Seccion 1: Datos de la Estancia (Fallback si no hay bookingId) -->
+                <div id="stay-details-section" style="display:none;">
+                    <div class="form-section-title">Datos del Alojamiento</div>
+                    <div class="grid-2">
+                        <div class="field">
+                            <label for="f-apt">Apartamento *</label>
+                            <select id="f-apt">
+                                <option value="Loft">Loft</option>
+                                <option value="1st floor">1st floor</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="f-entrada">Fecha de Entrada *</label>
+                            <input type="date" id="f-entrada">
+                        </div>
+                        <div class="field">
+                            <label for="f-salida">Fecha de Salida *</label>
+                            <input type="date" id="f-salida">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Seccion 2: Datos Personales -->
+                <div class="form-section-title">Datos del Huésped Principal</div>
+                <div class="grid-2">
+                    <div class="field full-width">
+                        <label for="f-nombre">Nombre Completo (y Apellidos) *</label>
+                        <input type="text" id="f-nombre" required placeholder="Ej: Juan Pérez García">
+                    </div>
+                    <div class="field">
+                        <label for="f-email">Correo Electrónico *</label>
+                        <input type="email" id="f-email" required placeholder="ejemplo@correo.com">
+                    </div>
+                    <div class="field">
+                        <label for="f-telefono">Teléfono de contacto *</label>
+                        <input type="tel" id="f-telefono" required placeholder="+34 600 000 000">
+                    </div>
+                    <div class="field">
+                        <label for="f-nacimiento">Fecha de Nacimiento *</label>
+                        <input type="date" id="f-nacimiento" required>
+                    </div>
+                    <div class="field">
+                        <label for="f-sexo">Sexo *</label>
+                        <select id="f-sexo" required>
+                            <option value="">Seleccione...</option>
+                            <option value="M">Masculino</option>
+                            <option value="F">Femenino</option>
+                            <option value="O">Otro</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Seccion 3: Documento de Identidad -->
+                <div class="form-section-title">Documento de Identificación</div>
+                <div class="grid-2">
+                    <div class="field">
+                        <label for="f-doc-tipo">Tipo de Documento *</label>
+                        <select id="f-doc-tipo" required>
+                            <option value="">Seleccione...</option>
+                            <option value="DNI">DNI (España)</option>
+                            <option value="Pasaporte">Pasaporte</option>
+                            <option value="NIE">NIE / TIE</option>
+                            <option value="Licencia">Carnet de Conducir</option>
+                            <option value="Otro">Otro Documento Oficial</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="f-doc-num">Número de Documento *</label>
+                        <input type="text" id="f-doc-num" required placeholder="Ej: 12345678Z">
+                    </div>
+                    <div class="field">
+                        <label for="f-doc-pais">País de Expedición *</label>
+                        <input type="text" id="f-doc-pais" required placeholder="Ej: España">
+                    </div>
+                    <div class="field">
+                        <label for="f-doc-emision">Fecha de Emisión *</label>
+                        <input type="date" id="f-doc-emision" required>
+                    </div>
+                </div>
+
+                <!-- Seccion 4: Dirección de Residencia -->
+                <div class="form-section-title">Dirección de Residencia Completa</div>
+                <div class="grid-2">
+                    <div class="field full-width">
+                        <label for="f-dir-calle">Dirección (Calle, Nº, Piso, Puerta) *</label>
+                        <input type="text" id="f-dir-calle" required placeholder="Ej: Calle Mayor 15, 2ºB">
+                    </div>
+                    <div class="field">
+                        <label for="f-dir-ciudad">Ciudad / Municipio *</label>
+                        <input type="text" id="f-dir-ciudad" required placeholder="Ej: Madrid">
+                    </div>
+                    <div class="field">
+                        <label for="f-dir-cp">Código Postal *</label>
+                        <input type="text" id="f-dir-cp" required placeholder="Ej: 28001">
+                    </div>
+                    <div class="field">
+                        <label for="f-dir-provincia">Provincia / Estado *</label>
+                        <input type="text" id="f-dir-provincia" required placeholder="Ej: Madrid">
+                    </div>
+                    <div class="field">
+                        <label for="f-dir-pais">País de Residencia *</label>
+                        <input type="text" id="f-dir-pais" required placeholder="Ej: España">
+                    </div>
+                </div>
+
+                <!-- Seccion 5: Firma Digital -->
+                <div class="form-section-title">Firma Digital *</div>
+                <div class="sig-hint">Por favor, firme con su dedo (móvil) o ratón (PC) dentro del recuadro blanco:</div>
+                <div class="signature-container">
+                    <canvas id="signature-pad"></canvas>
+                </div>
+                <div class="sig-actions">
+                    <span class="sig-hint" id="sig-status" style="color:#ff7b72;">Firma requerida</span>
+                    <button type="button" class="clear-btn" id="sig-clear-btn">Limpiar Firma</button>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submit-btn">
+                    <div class="spinner" id="btn-spinner"></div>
+                    <span id="btn-text">Completar Check-in</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Success Screen -->
+        <div id="success-box" class="success-box">
+            <div class="success-icon">✓</div>
+            <h2 class="success-title">¡Registro Completado!</h2>
+            <p class="success-text">
+                Muchas gracias. Sus datos de check-in han sido registrados y enviados con éxito.<br>
+                Ya está todo listo para su estancia. ¡Que tenga un feliz viaje!
+            </p>
+        </div>
+    </div>
+
+    <!-- Application Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const db = firebase.firestore();
+            
+            // Get booking ID from query param
+            const urlParams = new URLSearchParams(window.location.search);
+            const bookingId = urlParams.get('bookingId');
+
+            const loadingEl = document.getElementById('loading');
+            const formBoxEl = document.getElementById('form-box');
+            const staySectionEl = document.getElementById('stay-details-section');
+            const successBoxEl = document.getElementById('success-box');
+
+            // Form Fields Elements
+            const infoApt = document.getElementById('info-apt');
+            const infoEntrada = document.getElementById('info-entrada');
+            const infoSalida = document.getElementById('info-salida');
+
+            const fApt = document.getElementById('f-apt');
+            const fEntrada = document.getElementById('f-entrada');
+            const fSalida = document.getElementById('f-salida');
+
+            // Set today as max for birthdate
+            const todayStr = new Date().toISOString().split('T')[0];
+            document.getElementById('f-nacimiento').max = todayStr;
+            document.getElementById('f-doc-emision').max = todayStr;
+
+            let bookingData = null;
+
+            // Load booking details
+            if (bookingId) {
+                db.collection('bookings').doc(bookingId).get()
+                    .then(doc => {
+                        if (doc.exists) {
+                            bookingData = doc.data();
+                            
+                            infoApt.textContent = bookingData.apt || '-';
+                            infoEntrada.textContent = formatDateReadable(bookingData.entrada);
+                            infoSalida.textContent = formatDateReadable(bookingData.salida);
+                            
+                            // Keep inputs synchronized in case they are needed
+                            fApt.value = bookingData.apt || 'Loft';
+                            fEntrada.value = bookingData.entrada || '';
+                            fSalida.value = bookingData.salida || '';
+                            
+                            loadingEl.style.display = 'none';
+                            formBoxEl.style.display = 'block';
+                        } else {
+                            console.error('No se encontró la reserva.');
+                            enableManualInput();
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error cargando reserva:', err);
+                        enableManualInput();
+                    });
+            } else {
+                enableManualInput();
+            }
+
+            function enableManualInput() {
+                // No bookingId or invalid, show manual fields so form remains usable
+                infoApt.textContent = 'Pendiente de asignar';
+                infoEntrada.textContent = 'Manual';
+                infoSalida.textContent = 'Manual';
+                
+                staySectionEl.style.display = 'block';
+                fApt.required = true;
+                fEntrada.required = true;
+                fSalida.required = true;
+
+                loadingEl.style.display = 'none';
+                formBoxEl.style.display = 'block';
+            }
+
+            function formatDateReadable(dateStr) {
+                if (!dateStr) return '-';
+                try {
+                    const [year, month, day] = dateStr.split('-');
+                    return `${day}/${month}/${year}`;
+                } catch(e) {
+                    return dateStr;
+                }
+            }
+
+            // ── Signature Canvas Logic ──────────────────────────────────────────────
+            const canvas = document.getElementById('signature-pad');
+            const ctx = canvas.getContext('2d');
+            const clearBtn = document.getElementById('sig-clear-btn');
+            const sigStatus = document.getElementById('sig-status');
+            let drawing = false;
+            let isSigned = false;
+
+            function resizeCanvas() {
+                // High DPI support
+                const ratio = Math.max(window.devicePixelRatio || 1, 1);
+                const width = canvas.offsetWidth;
+                const height = canvas.offsetHeight;
+                canvas.width = width * ratio;
+                canvas.height = height * ratio;
+                ctx.scale(ratio, ratio);
+                
+                // Redraw styles
+                ctx.strokeStyle = '#1a1a2e'; // dark ink
+                ctx.lineWidth = 2.5;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                
+                // Clear to white
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, width, height);
+                isSigned = false;
+                updateSigStatus();
+            }
+
+            window.addEventListener('resize', resizeCanvas);
+            // Delay slightly to ensure layout elements are fully rendered
+            setTimeout(resizeCanvas, 300);
+
+            function updateSigStatus() {
+                if (isSigned) {
+                    sigStatus.textContent = '✓ Firma lista';
+                    sigStatus.style.color = 'var(--success)';
+                } else {
+                    sigStatus.textContent = 'Firma requerida';
+                    sigStatus.style.color = '#ff7b72';
+                }
+            }
+
+            function getEventPos(e) {
+                const rect = canvas.getBoundingClientRect();
+                if (e.touches && e.touches.length > 0) {
+                    return {
+                        x: e.touches[0].clientX - rect.left,
+                        y: e.touches[0].clientY - rect.top
+                    };
+                }
+                return {
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top
+                };
+            }
+
+            function startDrawing(e) {
+                drawing = true;
+                const pos = getEventPos(e);
+                ctx.beginPath();
+                ctx.moveTo(pos.x, pos.y);
+                if (e.cancelable) e.preventDefault();
+            }
+
+            function draw(e) {
+                if (!drawing) return;
+                const pos = getEventPos(e);
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+                isSigned = true;
+                updateSigStatus();
+                if (e.cancelable) e.preventDefault();
+            }
+
+            function stopDrawing() {
+                drawing = false;
+            }
+
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            window.addEventListener('mouseup', stopDrawing);
+
+            canvas.addEventListener('touchstart', startDrawing, { passive: false });
+            canvas.addEventListener('touchmove', draw, { passive: false });
+            window.addEventListener('touchend', stopDrawing);
+
+            clearBtn.addEventListener('click', () => {
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                isSigned = false;
+                updateSigStatus();
+            });
+
+            // ── Form Submission ──────────────────────────────────────────────────────
+            const form = document.getElementById('checkin-form');
+            const submitBtn = document.getElementById('submit-btn');
+            const btnSpinner = document.getElementById('btn-spinner');
+            const btnText = document.getElementById('btn-text');
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                if (!isSigned) {
+                    alert('Por favor, firme el documento para poder continuar.');
+                    return;
+                }
+
+                // Gather values
+                const nombre = document.getElementById('f-nombre').value.trim();
+                const email = document.getElementById('f-email').value.trim();
+                const telefono = document.getElementById('f-telefono').value.trim();
+                const nacimiento = document.getElementById('f-nacimiento').value;
+                const sexo = document.getElementById('f-sexo').value;
+                
+                const docTipo = document.getElementById('f-doc-tipo').value;
+                const docNum = document.getElementById('f-doc-num').value.trim();
+                const docPais = document.getElementById('f-doc-pais').value.trim();
+                const docEmision = document.getElementById('f-doc-emision').value;
+
+                const dirCalle = document.getElementById('f-dir-calle').value.trim();
+                const dirCiudad = document.getElementById('f-dir-ciudad').value.trim();
+                const dirCp = document.getElementById('f-dir-cp').value.trim();
+                const dirProvincia = document.getElementById('f-dir-provincia').value.trim();
+                const dirPais = document.getElementById('f-dir-pais').value.trim();
+
+                const apt = bookingData ? bookingData.apt : fApt.value;
+                const entrada = bookingData ? bookingData.entrada : fEntrada.value;
+                const salida = bookingData ? bookingData.salida : fSalida.value;
+
+                // Signature image
+                const signatureImage = canvas.toDataURL('image/png');
+
+                // UI loading
+                submitBtn.disabled = true;
+                btnSpinner.style.display = 'block';
+                btnText.textContent = 'Enviando...';
+
+                const targetBookingId = bookingId || db.collection('checkins').doc().id;
+
+                const checkinPayload = {
+                    bookingId: bookingId || '',
+                    apt,
+                    entrada,
+                    salida,
+                    guest: {
+                        nombre,
+                        email,
+                        telefono,
+                        nacimiento,
+                        sexo,
+                        docTipo,
+                        docNum,
+                        docPais,
+                        docEmision,
+                        direccion: {
+                            calle: dirCalle,
+                            ciudad: dirCiudad,
+                            cp: dirCp,
+                            provincia: dirProvincia,
+                            pais: dirPais
+                        }
+                    },
+                    signature: signatureImage,
+                    submittedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                try {
+                    // 1. Save to Firestore checkins collection
+                    await db.collection('checkins').doc(targetBookingId).set(checkinPayload);
+
+                    // 2. Update booking status if applicable
+                    if (bookingId) {
+                        await db.collection('bookings').doc(bookingId).update({
+                            checkedIn: true
+                        });
+                    }
+
+                    // 3. Email notification via Web3Forms (dynamic)
+                    try {
+                        const configDoc = await db.collection('settings').doc('global_config').get();
+                        const config = configDoc.exists ? configDoc.data() : {};
+                        
+                        const key = config.web3forms_key;
+                        const adminEmail = config.admin_email || 'mmiravitllas@gmail.com'; // Fallback to super admin in config file
+
+                        if (key) {
+                            const emailBody = {
+                                access_key: key,
+                                subject: `Nuevo Check-in Online: ${apt} (${formatDateReadable(entrada)} a ${formatDateReadable(salida)})`,
+                                from_name: "Portal de Check-in",
+                                to_email: adminEmail,
+                                "Apartamento": apt,
+                                "Check-in": formatDateReadable(entrada),
+                                "Check-out": formatDateReadable(salida),
+                                "Huésped Principal": nombre,
+                                "Email": email,
+                                "Teléfono": telefono,
+                                "Nacimiento": formatDateReadable(nacimiento),
+                                "Sexo": sexo,
+                                "Documento": `${docTipo} - Nº ${docNum} (${docPais})`,
+                                "Emisión Documento": formatDateReadable(docEmision),
+                                "Dirección Completa": `${dirCalle}, ${dirCiudad} (${dirCp}) - ${dirProvincia}, ${dirPais}`,
+                                "Mensaje": `Se ha recibido un nuevo registro de check-in digital. Los detalles completos se guardaron en la base de datos de reservas.`,
+                                // Attach signature base64 as data url text
+                                "Firma (Copia Base64)": signatureImage
+                            };
+
+                            await fetch('https://api.web3forms.com/submit', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Accept': 'application/json'
+                                },
+                                body: JSON.stringify(emailBody)
+                            });
+                            console.log('Notificación por correo enviada con éxito.');
+                        } else {
+                            console.log('Web3Forms no configurado. Solo guardando en base de datos.');
+                        }
+                    } catch (emailErr) {
+                        console.error('Error al enviar notificación de email:', emailErr);
+                    }
+
+                    // Show success state
+                    formBoxEl.style.display = 'none';
+                    successBoxEl.style.display = 'block';
+
+                } catch (err) {
+                    console.error('Error guardando el check-in:', err);
+                    alert('Hubo un error al guardar sus datos de registro. Por favor, inténtelo de nuevo.');
+                    submitBtn.disabled = false;
+                    btnSpinner.style.display = 'none';
+                    btnText.textContent = 'Completar Check-in';
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>

@@ -78,6 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Tourist Check-in Elements
     const configAdminEmailInput = document.getElementById('config-admin-email');
+    const configMinAgeInput = document.getElementById('config-min-age');
     const configWeb3formsKeyInput = document.getElementById('config-web3forms-key');
     const ttCheckinStatus = document.getElementById('tt-checkin-status');
     const ttCopyCheckin   = document.getElementById('tt-copy-checkin');
@@ -147,6 +148,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                         if (data.admin_email !== undefined && configAdminEmailInput) {
                             configAdminEmailInput.value = data.admin_email || '';
+                        }
+                        if (data.min_checkin_age !== undefined && configMinAgeInput) {
+                            configMinAgeInput.value = data.min_checkin_age;
                         }
                         if (data.web3forms_key !== undefined && configWeb3formsKeyInput) {
                             configWeb3formsKeyInput.value = data.web3forms_key || '';
@@ -887,6 +891,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const config = await getGlobalConfig();
             if (configAdminEmailInput) configAdminEmailInput.value = config.admin_email || '';
+            if (configMinAgeInput) configMinAgeInput.value = config.min_checkin_age !== undefined ? config.min_checkin_age : 14;
             if (configWeb3formsKeyInput) configWeb3formsKeyInput.value = config.web3forms_key || '';
         } catch(e) {
             console.error('Error fetching global config:', e);
@@ -898,10 +903,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const newRate = parseFloat(configTaxRateInput.value) || 1.75;
         const newEmail = configAdminEmailInput ? configAdminEmailInput.value.trim() : '';
         const newKey = configWeb3formsKeyInput ? configWeb3formsKeyInput.value.trim() : '';
+        const newMinAge = configMinAgeInput ? parseInt(configMinAgeInput.value, 10) : 14;
         await updateGlobalConfig({ 
             tax_rate: newRate,
             admin_email: newEmail,
-            web3forms_key: newKey
+            web3forms_key: newKey,
+            min_checkin_age: isNaN(newMinAge) ? 14 : newMinAge
         });
         // UI updates automatically via onSnapshot
         configModal?.classList.add('hidden');
@@ -1194,31 +1201,64 @@ document.addEventListener('DOMContentLoaded', () => {
                 const doc = await db.collection('checkins').doc(currentBookingId).get();
                 if (doc.exists) {
                     const data = doc.data();
-                    const guest = data.guest || {};
-                    const dir = guest.direccion || {};
 
                     if (civApt) civApt.textContent = data.apt || '-';
                     if (civEntrada) civEntrada.textContent = formatDateStringReadable(data.entrada);
                     if (civSalida) civSalida.textContent = formatDateStringReadable(data.salida);
                     
-                    if (civNombre) civNombre.textContent = guest.nombre || '-';
-                    if (civEmail) civEmail.textContent = guest.email || '-';
-                    if (civTelefono) civTelefono.textContent = guest.telefono || '-';
-                    if (civNacimiento) civNacimiento.textContent = formatDateStringReadable(guest.nacimiento);
-                    if (civSexo) civSexo.textContent = guest.sexo || '-';
-                    
-                    if (civDocTipo) civDocTipo.textContent = guest.docTipo || '-';
-                    if (civDocNum) civDocNum.textContent = guest.docNum || '-';
-                    if (civDocPais) civDocPais.textContent = guest.docPais || '-';
-                    if (civDocEmision) civDocEmision.textContent = formatDateStringReadable(guest.docEmision);
-                    
-                    if (civDirCalle) civDirCalle.textContent = dir.calle || '-';
-                    if (civDirCiudad) civDirCiudad.textContent = dir.ciudad || '-';
-                    if (civDirCp) civDirCp.textContent = dir.cp || '-';
-                    if (civDirProvincia) civDirProvincia.textContent = dir.provincia || '-';
-                    if (civDirPais) civDirPais.textContent = dir.pais || '-';
-
-                    if (civSignatureImg) civSignatureImg.src = data.signature || '';
+                    const checkinGuestsList = document.getElementById('checkin-guests-list');
+                    if (checkinGuestsList) {
+                        checkinGuestsList.innerHTML = '';
+                        
+                        let guestsArray = [];
+                        if (data.guests && Array.isArray(data.guests)) {
+                            guestsArray = data.guests;
+                        } else if (data.guest) {
+                            guestsArray = [
+                                {
+                                    ...data.guest,
+                                    signature: data.signature
+                                }
+                            ];
+                        }
+                        
+                        guestsArray.forEach((guest, index) => {
+                            const dir = guest.direccion || {};
+                            const guestCard = document.createElement('div');
+                            guestCard.style.cssText = 'border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px; margin-bottom: 15px; background: #fafafa; color: #1a1a2e; page-break-inside: avoid;';
+                            guestCard.innerHTML = `
+                                <div style="font-weight: 700; border-bottom: 2px solid #2563eb; padding-bottom: 4px; margin-bottom: 10px; color: #2563eb; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.5px;">
+                                    Viajero ${index + 1} ${index === 0 ? '(Huésped Principal)' : ''}
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px 15px; font-size: 0.85rem; line-height: 1.4;">
+                                    <div style="grid-column: 1 / -1;"><strong>Nombre Completo:</strong> ${guest.nombre || '-'}</div>
+                                    <div><strong>Email:</strong> ${guest.email || '-'}</div>
+                                    <div><strong>Teléfono:</strong> ${guest.telefono || '-'}</div>
+                                    <div><strong>Fecha de Nacimiento:</strong> ${formatDateStringReadable(guest.nacimiento)}</div>
+                                    <div><strong>Sexo:</strong> ${guest.sexo || '-'}</div>
+                                    
+                                    <div style="grid-column: 1 / -1; font-weight: 700; border-bottom: 1px solid #ddd; padding-bottom: 2px; margin-top: 6px; color: #555; text-transform: uppercase; font-size: 0.75rem;">Documento</div>
+                                    <div><strong>Tipo:</strong> ${guest.docTipo || '-'}</div>
+                                    <div><strong>Número:</strong> ${guest.docNum || '-'}</div>
+                                    <div><strong>País Expedición:</strong> ${guest.docPais || '-'}</div>
+                                    <div><strong>Fecha Emisión:</strong> ${formatDateStringReadable(guest.docEmision)}</div>
+                                    
+                                    <div style="grid-column: 1 / -1; font-weight: 700; border-bottom: 1px solid #ddd; padding-bottom: 2px; margin-top: 6px; color: #555; text-transform: uppercase; font-size: 0.75rem;">Dirección</div>
+                                    <div style="grid-column: 1 / -1;"><strong>Calle:</strong> ${dir.calle || '-'}</div>
+                                    <div><strong>Ciudad:</strong> ${dir.ciudad || '-'}</div>
+                                    <div><strong>Código Postal:</strong> ${dir.cp || '-'}</div>
+                                    <div><strong>Provincia:</strong> ${dir.provincia || '-'}</div>
+                                    <div><strong>País Residencia:</strong> ${dir.pais || '-'}</div>
+                                    
+                                    <div style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; margin-top: 12px; border: 1px solid #ddd; border-radius: 6px; padding: 8px; background: white;">
+                                        <span style="font-size: 0.7rem; font-weight: 600; color: #666; text-transform: uppercase; margin-bottom: 4px;">Firma</span>
+                                        <img src="${guest.signature || ''}" alt="Firma digital" style="max-height: 80px; max-width: 100%; object-fit: contain;">
+                                    </div>
+                                </div>
+                            `;
+                            checkinGuestsList.appendChild(guestCard);
+                        });
+                    }
                     
                     if (civSubmittedAt) {
                         const date = data.submittedAt ? (data.submittedAt.toDate ? data.submittedAt.toDate() : new Date(data.submittedAt)) : null;

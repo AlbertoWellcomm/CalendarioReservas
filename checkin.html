@@ -172,7 +172,7 @@
         canvas {
             display: block;
             width: 100%;
-            height: 160px;
+            height: 140px;
             cursor: crosshair;
             background-color: #ffffff;
         }
@@ -296,6 +296,44 @@
             justify-content: center;
             padding: 3rem 0;
         }
+
+        /* Custom style tokens */
+        .lang-btn {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 4px 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .lang-btn.active {
+            background-color: var(--accent) !important;
+            color: #ffffff !important;
+            border-color: var(--accent) !important;
+        }
+
+        .lang-btn:not(.active):hover {
+            border-color: var(--text-secondary);
+            color: var(--text-color);
+        }
+
+        .guest-card {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            background: rgba(255, 255, 255, 0.015);
+            transition: all 0.3s ease;
+        }
+
+        .guest-card:hover {
+            border-color: rgba(88, 166, 255, 0.5);
+            box-shadow: 0 5px 20px rgba(88, 166, 255, 0.03);
+        }
     </style>
 </head>
 <body>
@@ -304,11 +342,16 @@
         <!-- Loading Overlay -->
         <div id="loading" class="loading-overlay">
             <div class="spinner" style="display:block; width:40px; height:40px; border-width:4px; margin-bottom:1rem;"></div>
-            <p>Cargando información de la reserva...</p>
+            <p id="loading-text">Cargando información de la reserva...</p>
         </div>
 
         <!-- Form Box -->
         <div id="form-box" style="display:none;">
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 1.5rem; gap: 8px;">
+                <button type="button" id="lang-es-btn" class="lang-btn active" onclick="setLanguage('es')">🇪🇸 ES</button>
+                <button type="button" id="lang-en-btn" class="lang-btn" onclick="setLanguage('en')">🇬🇧 EN</button>
+            </div>
+
             <div class="header">
                 <h1>Registro de Viajeros</h1>
                 <p class="subtitle">Complete sus datos para formalizar el registro oficial de entrada</p>
@@ -317,15 +360,15 @@
             <!-- Booking Info Card -->
             <div class="booking-info">
                 <div class="info-block">
-                    <span class="info-label">Apartamento</span>
+                    <span class="info-label" id="lbl-info-apt">Apartamento</span>
                     <span class="info-val" id="info-apt">-</span>
                 </div>
                 <div class="info-block">
-                    <span class="info-label">Check-in</span>
+                    <span class="info-label" id="lbl-info-entrada">Check-in</span>
                     <span class="info-val" id="info-entrada">-</span>
                 </div>
                 <div class="info-block">
-                    <span class="info-label">Check-out</span>
+                    <span class="info-label" id="lbl-info-salida">Check-out</span>
                     <span class="info-val" id="info-salida">-</span>
                 </div>
             </div>
@@ -333,118 +376,43 @@
             <form id="checkin-form">
                 <!-- Seccion 1: Datos de la Estancia (Fallback si no hay bookingId) -->
                 <div id="stay-details-section" style="display:none;">
-                    <div class="form-section-title">Datos del Alojamiento</div>
+                    <div class="form-section-title" id="lbl-stay-details">Datos del Alojamiento</div>
                     <div class="grid-2">
                         <div class="field">
-                            <label for="f-apt">Apartamento *</label>
+                            <label for="f-apt" id="lbl-f-apt">Apartamento *</label>
                             <select id="f-apt">
                                 <option value="Loft">Loft</option>
                                 <option value="1st floor">1st floor</option>
                             </select>
                         </div>
                         <div class="field">
-                            <label for="f-entrada">Fecha de Entrada *</label>
+                            <label for="f-entrada" id="lbl-f-entrada">Fecha de Entrada *</label>
                             <input type="date" id="f-entrada">
                         </div>
                         <div class="field">
-                            <label for="f-salida">Fecha de Salida *</label>
+                            <label for="f-salida" id="lbl-f-salida">Fecha de Salida *</label>
                             <input type="date" id="f-salida">
                         </div>
                     </div>
                 </div>
 
-                <!-- Seccion 2: Datos Personales -->
-                <div class="form-section-title">Datos del Huésped Principal</div>
-                <div class="grid-2">
-                    <div class="field full-width">
-                        <label for="f-nombre">Nombre Completo (y Apellidos) *</label>
-                        <input type="text" id="f-nombre" required placeholder="Ej: Juan Pérez García">
-                    </div>
-                    <div class="field">
-                        <label for="f-email">Correo Electrónico *</label>
-                        <input type="email" id="f-email" required placeholder="ejemplo@correo.com">
-                    </div>
-                    <div class="field">
-                        <label for="f-telefono">Teléfono de contacto *</label>
-                        <input type="tel" id="f-telefono" required placeholder="+34 600 000 000">
-                    </div>
-                    <div class="field">
-                        <label for="f-nacimiento">Fecha de Nacimiento *</label>
-                        <input type="date" id="f-nacimiento" required>
-                    </div>
-                    <div class="field">
-                        <label for="f-sexo">Sexo *</label>
-                        <select id="f-sexo" required>
-                            <option value="">Seleccione...</option>
-                            <option value="M">Masculino</option>
-                            <option value="F">Femenino</option>
-                            <option value="O">Otro</option>
-                        </select>
-                    </div>
+                <!-- Booking pax prompt notice -->
+                <div id="booking-pax-notice" style="display: none; padding: 10px 14px; background: rgba(88, 166, 255, 0.08); border: 1px dashed var(--accent); border-radius: 8px; font-size: 0.85rem; line-height: 1.4; margin-bottom: 1.5rem; text-align: center; color: var(--accent);">
                 </div>
 
-                <!-- Seccion 3: Documento de Identidad -->
-                <div class="form-section-title">Documento de Identificación</div>
-                <div class="grid-2">
-                    <div class="field">
-                        <label for="f-doc-tipo">Tipo de Documento *</label>
-                        <select id="f-doc-tipo" required>
-                            <option value="">Seleccione...</option>
-                            <option value="DNI">DNI (España)</option>
-                            <option value="Pasaporte">Pasaporte</option>
-                            <option value="NIE">NIE / TIE</option>
-                            <option value="Licencia">Carnet de Conducir</option>
-                            <option value="Otro">Otro Documento Oficial</option>
-                        </select>
-                    </div>
-                    <div class="field">
-                        <label for="f-doc-num">Número de Documento *</label>
-                        <input type="text" id="f-doc-num" required placeholder="Ej: 12345678Z">
-                    </div>
-                    <div class="field">
-                        <label for="f-doc-pais">País de Expedición *</label>
-                        <input type="text" id="f-doc-pais" required placeholder="Ej: España">
-                    </div>
-                    <div class="field">
-                        <label for="f-doc-emision">Fecha de Emisión *</label>
-                        <input type="date" id="f-doc-emision" required>
-                    </div>
+                <!-- Dynamic Guests Container -->
+                <div id="guests-container">
+                    <!-- Dynamic traveler forms go here -->
                 </div>
 
-                <!-- Seccion 4: Dirección de Residencia -->
-                <div class="form-section-title">Dirección de Residencia Completa</div>
-                <div class="grid-2">
-                    <div class="field full-width">
-                        <label for="f-dir-calle">Dirección (Calle, Nº, Piso, Puerta) *</label>
-                        <input type="text" id="f-dir-calle" required placeholder="Ej: Calle Mayor 15, 2ºB">
-                    </div>
-                    <div class="field">
-                        <label for="f-dir-ciudad">Ciudad / Municipio *</label>
-                        <input type="text" id="f-dir-ciudad" required placeholder="Ej: Madrid">
-                    </div>
-                    <div class="field">
-                        <label for="f-dir-cp">Código Postal *</label>
-                        <input type="text" id="f-dir-cp" required placeholder="Ej: 28001">
-                    </div>
-                    <div class="field">
-                        <label for="f-dir-provincia">Provincia / Estado *</label>
-                        <input type="text" id="f-dir-provincia" required placeholder="Ej: Madrid">
-                    </div>
-                    <div class="field">
-                        <label for="f-dir-pais">País de Residencia *</label>
-                        <input type="text" id="f-dir-pais" required placeholder="Ej: España">
-                    </div>
-                </div>
-
-                <!-- Seccion 5: Firma Digital -->
-                <div class="form-section-title">Firma Digital *</div>
-                <div class="sig-hint">Por favor, firme con su dedo (móvil) o ratón (PC) dentro del recuadro blanco:</div>
-                <div class="signature-container">
-                    <canvas id="signature-pad"></canvas>
-                </div>
-                <div class="sig-actions">
-                    <span class="sig-hint" id="sig-status" style="color:#ff7b72;">Firma requerida</span>
-                    <button type="button" class="clear-btn" id="sig-clear-btn">Limpiar Firma</button>
+                <!-- Traveler Actions buttons -->
+                <div style="display: flex; gap: 1rem; margin: 1.5rem 0;">
+                    <button type="button" id="add-guest-btn" class="submit-btn" style="margin-top: 0; background: rgba(88, 166, 255, 0.12); color: var(--accent); border: 1px solid rgba(88, 166, 255, 0.3); font-size: 0.9rem;">
+                        + <span id="lbl-add-guest">Añadir otro viajero</span>
+                    </button>
+                    <button type="button" id="remove-guest-btn" class="submit-btn" style="margin-top: 0; background: rgba(255, 123, 114, 0.12); color: #ff7b72; border: 1px solid rgba(255, 123, 114, 0.3); font-size: 0.9rem; display: none;">
+                        - <span id="lbl-remove-guest">Eliminar viajero</span>
+                    </button>
                 </div>
 
                 <button type="submit" class="submit-btn" id="submit-btn">
@@ -457,8 +425,8 @@
         <!-- Success Screen -->
         <div id="success-box" class="success-box">
             <div class="success-icon">✓</div>
-            <h2 class="success-title">¡Registro Completado!</h2>
-            <p class="success-text">
+            <h2 class="success-title" id="success-title">¡Registro Completado!</h2>
+            <p class="success-text" id="success-text">
                 Muchas gracias. Sus datos de check-in han sido registrados y enviados con éxito.<br>
                 Ya está todo listo para su estancia. ¡Que tenga un feliz viaje!
             </p>
@@ -467,6 +435,244 @@
 
     <!-- Application Script -->
     <script>
+        const i18n = {
+            es: {
+                title: "Registro de Viajeros",
+                subtitle: "Complete sus datos para formalizar el registro oficial de entrada",
+                lblStayDetails: "Datos del Alojamiento",
+                lblFapt: "Apartamento *",
+                lblFentrada: "Fecha de Entrada *",
+                lblFsalida: "Fecha de Salida *",
+                lblAddGuest: "Añadir otro viajero",
+                lblRemoveGuest: "Eliminar viajero",
+                btnComplete: "Completar Check-in",
+                btnCompleting: "Enviando...",
+                successTitle: "¡Registro Completado!",
+                successText: "Muchas gracias. Sus datos de check-in han sido registrados y enviados con éxito.<br>Ya está todo listo para su estancia. ¡Que tenga un feliz viaje!",
+                loadingConfig: "Cargando información de la reserva...",
+                sigRequired: "Firma requerida",
+                sigReady: "✓ Firma lista",
+                sigWarningAlert: "Por favor, firme el documento para poder continuar.",
+                sigWarningAlertMultiple: "Por favor, todos los viajeros mayores de {minAge} años deben firmar para continuar.",
+                clearSig: "Limpiar Firma",
+                sigHint: "Por favor, firme con su dedo (móvil) o ratón (PC) dentro del recuadro:",
+                ageAlertUnder: "Este viajero es menor de {minAge} años. No requiere registro de documento de identidad ni firma.",
+                lblNombre: "Nombre Completo (y Apellidos) *",
+                lblEmail: "Correo Electrónico *",
+                lblEmailOpt: "Correo Electrónico (Opcional)",
+                lblTelefono: "Teléfono de contacto *",
+                lblTelefonoOpt: "Teléfono de contacto (Opcional)",
+                lblNacimiento: "Fecha de Nacimiento *",
+                lblSexo: "Sexo *",
+                optSelect: "Seleccione...",
+                optM: "Masculino",
+                optF: "Femenino",
+                optO: "Otro",
+                titleDoc: "Documento de Identificación",
+                lblDocTipo: "Tipo de Documento *",
+                optDni: "DNI (España)",
+                optPassport: "Pasaporte",
+                optNie: "NIE / TIE",
+                optLicense: "Carnet de Conducir",
+                optOtherDoc: "Otro Documento Oficial",
+                lblDocNum: "Número de Documento *",
+                lblDocPais: "País de Expedición *",
+                lblDocEmision: "Fecha de Emisión *",
+                lblSameAddress: "Misma dirección que el huésped principal",
+                titleAddress: "Dirección de Residencia",
+                lblDirCalle: "Dirección (Calle, Nº, Piso, Puerta) *",
+                lblDirCiudad: "Ciudad / Municipio *",
+                lblDirCp: "Código Postal *",
+                lblDirProvincia: "Provincia / Estado *",
+                lblDirPais: "País de Residencia *",
+                mainGuestTitle: "Datos del Huésped Principal",
+                additionalGuestTitle: "Datos del Huésped Adicional #{num}",
+                bookingNotice: "Esta reserva es para <strong>{pax} personas</strong>. Por favor, registre a todos los huéspedes mayores de {minAge} años.",
+                fillRequiredFields: "Por favor, rellene todos los campos obligatorios.",
+                errorTitle: "Error al guardar",
+                errorText: "Hubo un error al guardar sus datos de registro. Por favor, inténtelo de nuevo."
+            },
+            en: {
+                title: "Traveler Registration",
+                subtitle: "Complete your details to formalize the official entry registration",
+                lblStayDetails: "Accommodation Details",
+                lblFapt: "Apartment *",
+                lblFentrada: "Check-in Date *",
+                lblFsalida: "Check-out Date *",
+                lblAddGuest: "Add another traveler",
+                lblRemoveGuest: "Remove traveler",
+                btnComplete: "Complete Check-in",
+                btnCompleting: "Sending...",
+                successTitle: "Registration Completed!",
+                successText: "Thank you very much. Your check-in details have been successfully registered and sent.<br>Everything is ready for your stay. Have a safe trip!",
+                loadingConfig: "Loading booking information...",
+                sigRequired: "Signature required",
+                sigReady: "✓ Signature ready",
+                sigWarningAlert: "Please sign the document to continue.",
+                sigWarningAlertMultiple: "Please, all travelers older than {minAge} years must sign to continue.",
+                clearSig: "Clear",
+                sigHint: "Please sign with your finger (mobile) or mouse (PC) inside the box:",
+                ageAlertUnder: "This traveler is under {minAge} years old. ID document registration and signature are not required.",
+                lblNombre: "Full Name & Surname *",
+                lblEmail: "Email Address *",
+                lblEmailOpt: "Email Address (Optional)",
+                lblTelefono: "Contact Phone *",
+                lblTelefonoOpt: "Contact Phone (Optional)",
+                lblNacimiento: "Date of Birth *",
+                lblSexo: "Gender *",
+                optSelect: "Select...",
+                optM: "Male",
+                optF: "Female",
+                optO: "Other",
+                titleDoc: "Identification Document",
+                lblDocTipo: "Document Type *",
+                optDni: "DNI (Spain)",
+                optPassport: "Passport",
+                optNie: "NIE / TIE",
+                optLicense: "Driver License",
+                optOtherDoc: "Other Official ID",
+                lblDocNum: "Document Number *",
+                lblDocPais: "Country of Issue *",
+                lblDocEmision: "Date of Issue *",
+                lblSameAddress: "Same address as main guest",
+                titleAddress: "Residence Address",
+                lblDirCalle: "Address (Street, No, Apt, etc.) *",
+                lblDirCiudad: "City / Town *",
+                lblDirCp: "Postal / Zip Code *",
+                lblDirProvincia: "Province / State *",
+                lblDirPais: "Country of Residence *",
+                mainGuestTitle: "Main Guest Details",
+                additionalGuestTitle: "Additional Guest Details #{num}",
+                bookingNotice: "This booking is for <strong>{pax} persons</strong>. Please register all guests older than {minAge} years.",
+                fillRequiredFields: "Please fill in all required fields.",
+                errorTitle: "Error saving data",
+                errorText: "There was an error saving your registration details. Please try again."
+            }
+        };
+
+        let currentLanguage = 'es';
+        let minCheckinAge = 14; 
+        let guestCount = 0;
+        let bookingData = null;
+        const signaturePads = {};
+
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        function createGuestFormHTML(index) {
+            const isMain = (index === 0);
+            return `
+            <div class="guest-card" id="guest-card-${index}">
+                <h3 class="form-section-title" style="margin-top: 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--accent); padding-bottom: 6px;">
+                    <span class="guest-title-text" data-key="guest-title" data-index="${index}"></span>
+                </h3>
+                
+                <div class="grid-2">
+                    <div class="field full-width">
+                        <label for="g-${index}-nombre" data-key="lblNombre">Nombre Completo *</label>
+                        <input type="text" id="g-${index}-nombre" required>
+                    </div>
+                    <div class="field">
+                        <label for="g-${index}-email" id="lbl-g-${index}-email">Correo Electrónico *</label>
+                        <input type="email" id="g-${index}-email" ${isMain ? 'required' : ''}>
+                    </div>
+                    <div class="field">
+                        <label for="g-${index}-telefono" id="lbl-g-${index}-telefono">Teléfono *</label>
+                        <input type="tel" id="g-${index}-telefono" ${isMain ? 'required' : ''}>
+                    </div>
+                    <div class="field">
+                        <label for="g-${index}-nacimiento" data-key="lblNacimiento">Fecha de Nacimiento *</label>
+                        <input type="date" id="g-${index}-nacimiento" class="nacimiento-input" data-index="${index}" required max="${todayStr}">
+                    </div>
+                    <div class="field">
+                        <label for="g-${index}-sexo" data-key="lblSexo">Sexo *</label>
+                        <select id="g-${index}-sexo" required>
+                            <option value="" data-key="optSelect"></option>
+                            <option value="M" data-key="optM"></option>
+                            <option value="F" data-key="optF"></option>
+                            <option value="O" data-key="optO"></option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Age alert message if younger than threshold -->
+                <div id="g-${index}-age-alert" style="display: none; margin: 10px 0; padding: 8px 12px; background: rgba(88, 166, 255, 0.08); border: 1px solid rgba(88, 166, 255, 0.2); border-radius: 6px; font-size: 0.85rem; color: var(--accent); font-weight: 500;">
+                </div>
+
+                <div id="g-${index}-registry-details">
+                    <h4 class="form-section-title" data-key="titleDoc" style="font-size: 0.95rem; color: var(--text-color); margin: 1.5rem 0 0.75rem;">Documento de Identificación</h4>
+                    <div class="grid-2">
+                        <div class="field">
+                            <label for="g-${index}-doc-tipo" data-key="lblDocTipo">Tipo de Documento *</label>
+                            <select id="g-${index}-doc-tipo" required>
+                                <option value="" data-key="optSelect"></option>
+                                <option value="DNI" data-key="optDni"></option>
+                                <option value="Pasaporte" data-key="optPassport"></option>
+                                <option value="NIE" data-key="optNie"></option>
+                                <option value="Licencia" data-key="optLicense"></option>
+                                <option value="Otro" data-key="optOtherDoc"></option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="g-${index}-doc-num" data-key="lblDocNum">Número de Documento *</label>
+                            <input type="text" id="g-${index}-doc-num" required>
+                        </div>
+                        <div class="field">
+                            <label for="g-${index}-doc-pais" data-key="lblDocPais">País de Expedición *</label>
+                            <input type="text" id="g-${index}-doc-pais" required>
+                        </div>
+                        <div class="field">
+                            <label for="g-${index}-doc-emision" data-key="lblDocEmision">Fecha de Emisión *</label>
+                            <input type="date" id="g-${index}-doc-emision" required max="${todayStr}">
+                        </div>
+                    </div>
+                    
+                    ${!isMain ? `
+                    <div class="field full-width" style="margin-top: 1rem; flex-direction: row; gap: 8px; align-items: center;">
+                        <input type="checkbox" id="g-${index}-same-address" class="same-address-checkbox" data-index="${index}" style="width: auto; margin-right: 6px;">
+                        <label for="g-${index}-same-address" data-key="lblSameAddress" style="text-transform: none; font-size: 0.85rem; font-weight: normal; cursor: pointer; display: inline-block;">Misma dirección que el huésped principal</label>
+                    </div>
+                    ` : ''}
+                    
+                    <div id="g-${index}-address-section">
+                        <h4 class="form-section-title" data-key="titleAddress" style="font-size: 0.95rem; color: var(--text-color); margin: 1.5rem 0 0.75rem;">Dirección de Residencia</h4>
+                        <div class="grid-2">
+                            <div class="field full-width">
+                                <label for="g-${index}-dir-calle" data-key="lblDirCalle">Dirección *</label>
+                                <input type="text" id="g-${index}-dir-calle" required>
+                            </div>
+                            <div class="field">
+                                <label for="g-${index}-dir-ciudad" data-key="lblDirCiudad">Ciudad / Municipio *</label>
+                                <input type="text" id="g-${index}-dir-ciudad" required>
+                            </div>
+                            <div class="field">
+                                <label for="g-${index}-dir-cp" data-key="lblDirCp">Código Postal *</label>
+                                <input type="text" id="g-${index}-dir-cp" required>
+                            </div>
+                            <div class="field">
+                                <label for="g-${index}-dir-provincia" data-key="lblDirProvincia">Provincia / Estado *</label>
+                                <input type="text" id="g-${index}-dir-provincia" required>
+                            </div>
+                            <div class="field">
+                                <label for="g-${index}-dir-pais" data-key="lblDirPais">País de Residencia *</label>
+                                <input type="text" id="g-${index}-dir-pais" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h4 class="form-section-title" data-key="titleSig" style="font-size: 0.95rem; color: var(--text-color); margin: 1.5rem 0 0.75rem;">Firma Digital *</h4>
+                    <div class="sig-hint" data-key="sigHint">Por favor, firme dentro del recuadro:</div>
+                    <div class="signature-container">
+                        <canvas id="g-${index}-canvas" class="sig-canvas" data-index="${index}"></canvas>
+                    </div>
+                    <div class="sig-actions">
+                        <span class="sig-hint sig-status-lbl" id="g-${index}-sig-status" data-key="sigRequired" style="color: #ff7b72;">Firma requerida</span>
+                        <button type="button" class="clear-btn clear-sig-btn" data-index="${index}" data-key="clearSig">Limpiar Firma</button>
+                    </div>
+                </div>
+            </div>
+            `;
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             const db = firebase.firestore();
             
@@ -488,13 +694,6 @@
             const fEntrada = document.getElementById('f-entrada');
             const fSalida = document.getElementById('f-salida');
 
-            // Set today as max for birthdate
-            const todayStr = new Date().toISOString().split('T')[0];
-            document.getElementById('f-nacimiento').max = todayStr;
-            document.getElementById('f-doc-emision').max = todayStr;
-
-            let bookingData = null;
-
             // Load booking details
             if (bookingId) {
                 db.collection('bookings').doc(bookingId).get()
@@ -513,6 +712,8 @@
                             
                             loadingEl.style.display = 'none';
                             formBoxEl.style.display = 'block';
+
+                            loadSettingsAndInitialize();
                         } else {
                             console.error('No se encontró la reserva.');
                             enableManualInput();
@@ -527,8 +728,7 @@
             }
 
             function enableManualInput() {
-                // No bookingId or invalid, show manual fields so form remains usable
-                infoApt.textContent = 'Pendiente de asignar';
+                infoApt.textContent = 'Manual';
                 infoEntrada.textContent = 'Manual';
                 infoSalida.textContent = 'Manual';
                 
@@ -539,6 +739,26 @@
 
                 loadingEl.style.display = 'none';
                 formBoxEl.style.display = 'block';
+
+                loadSettingsAndInitialize();
+            }
+
+            function loadSettingsAndInitialize() {
+                db.collection('settings').doc('global_config').get()
+                    .then(doc => {
+                        if (doc.exists) {
+                            const data = doc.data();
+                            if (data.min_checkin_age !== undefined) {
+                                minCheckinAge = parseInt(data.min_checkin_age, 10);
+                            }
+                        }
+                        addGuestForm();
+                        updateBookingPaxNotice();
+                    })
+                    .catch(err => {
+                        console.error('Error cargando configuración:', err);
+                        addGuestForm();
+                    });
             }
 
             function formatDateReadable(dateStr) {
@@ -552,99 +772,257 @@
             }
 
             // ── Signature Canvas Logic ──────────────────────────────────────────────
-            const canvas = document.getElementById('signature-pad');
-            const ctx = canvas.getContext('2d');
-            const clearBtn = document.getElementById('sig-clear-btn');
-            const sigStatus = document.getElementById('sig-status');
-            let drawing = false;
-            let isSigned = false;
+            function initSignaturePad(canvas, index) {
+                const ctx = canvas.getContext('2d');
+                let drawing = false;
+                let isSigned = false;
 
-            function resizeCanvas() {
-                // High DPI support
-                const ratio = Math.max(window.devicePixelRatio || 1, 1);
-                const width = canvas.offsetWidth;
-                const height = canvas.offsetHeight;
-                canvas.width = width * ratio;
-                canvas.height = height * ratio;
-                ctx.scale(ratio, ratio);
-                
-                // Redraw styles
-                ctx.strokeStyle = '#1a1a2e'; // dark ink
-                ctx.lineWidth = 2.5;
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-                
-                // Clear to white
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(0, 0, width, height);
-                isSigned = false;
-                updateSigStatus();
-            }
-
-            window.addEventListener('resize', resizeCanvas);
-            // Delay slightly to ensure layout elements are fully rendered
-            setTimeout(resizeCanvas, 300);
-
-            function updateSigStatus() {
-                if (isSigned) {
-                    sigStatus.textContent = '✓ Firma lista';
-                    sigStatus.style.color = 'var(--success)';
-                } else {
-                    sigStatus.textContent = 'Firma requerida';
-                    sigStatus.style.color = '#ff7b72';
+                function resizeCanvas() {
+                    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+                    const width = canvas.offsetWidth;
+                    const height = canvas.offsetHeight;
+                    canvas.width = width * ratio;
+                    canvas.height = height * ratio;
+                    ctx.scale(ratio, ratio);
+                    
+                    // Redraw styles
+                    ctx.strokeStyle = '#1a1a2e'; // dark ink
+                    ctx.lineWidth = 2.5;
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    
+                    // Clear to white
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, width, height);
+                    isSigned = false;
+                    updateSigStatus();
                 }
-            }
 
-            function getEventPos(e) {
-                const rect = canvas.getBoundingClientRect();
-                if (e.touches && e.touches.length > 0) {
+                // Call resize after DOM insertion has settled
+                setTimeout(resizeCanvas, 100);
+
+                function updateSigStatus() {
+                    const statusEl = document.getElementById(`g-${index}-sig-status`);
+                    if (statusEl) {
+                        if (isSigned) {
+                            statusEl.textContent = i18n[currentLanguage].sigReady;
+                            statusEl.style.color = 'var(--success)';
+                        } else {
+                            statusEl.textContent = i18n[currentLanguage].sigRequired;
+                            statusEl.style.color = '#ff7b72';
+                        }
+                    }
+                }
+
+                function getEventPos(e) {
+                    const rect = canvas.getBoundingClientRect();
+                    if (e.touches && e.touches.length > 0) {
+                        return {
+                            x: e.touches[0].clientX - rect.left,
+                            y: e.touches[0].clientY - rect.top
+                        };
+                    }
                     return {
-                        x: e.touches[0].clientX - rect.left,
-                        y: e.touches[0].clientY - rect.top
+                        x: e.clientX - rect.left,
+                        y: e.clientY - rect.top
                     };
                 }
-                return {
-                    x: e.clientX - rect.left,
-                    y: e.clientY - rect.top
+
+                function startDrawing(e) {
+                    drawing = true;
+                    const pos = getEventPos(e);
+                    ctx.beginPath();
+                    ctx.moveTo(pos.x, pos.y);
+                    if (e.cancelable) e.preventDefault();
+                }
+
+                function draw(e) {
+                    if (!drawing) return;
+                    const pos = getEventPos(e);
+                    ctx.lineTo(pos.x, pos.y);
+                    ctx.stroke();
+                    isSigned = true;
+                    updateSigStatus();
+                    if (e.cancelable) e.preventDefault();
+                }
+
+                function stopDrawing() {
+                    drawing = false;
+                }
+
+                canvas.addEventListener('mousedown', startDrawing);
+                canvas.addEventListener('mousemove', draw);
+                window.addEventListener('mouseup', stopDrawing);
+
+                canvas.addEventListener('touchstart', startDrawing, { passive: false });
+                canvas.addEventListener('touchmove', draw, { passive: false });
+                window.addEventListener('touchend', stopDrawing);
+
+                // Find clear button
+                const clearBtn = document.querySelector(`.clear-sig-btn[data-index="${index}"]`);
+                if (clearBtn) {
+                    clearBtn.addEventListener('click', () => {
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        isSigned = false;
+                        updateSigStatus();
+                    });
+                }
+
+                // Store references globally
+                signaturePads[index] = {
+                    canvas,
+                    ctx,
+                    resize: resizeCanvas,
+                    isSigned: () => isSigned,
+                    getDataURL: () => canvas.toDataURL('image/png'),
+                    updateStatus: updateSigStatus
                 };
             }
 
-            function startDrawing(e) {
-                drawing = true;
-                const pos = getEventPos(e);
-                ctx.beginPath();
-                ctx.moveTo(pos.x, pos.y);
-                if (e.cancelable) e.preventDefault();
-            }
-
-            function draw(e) {
-                if (!drawing) return;
-                const pos = getEventPos(e);
-                ctx.lineTo(pos.x, pos.y);
-                ctx.stroke();
-                isSigned = true;
-                updateSigStatus();
-                if (e.cancelable) e.preventDefault();
-            }
-
-            function stopDrawing() {
-                drawing = false;
-            }
-
-            canvas.addEventListener('mousedown', startDrawing);
-            canvas.addEventListener('mousemove', draw);
-            window.addEventListener('mouseup', stopDrawing);
-
-            canvas.addEventListener('touchstart', startDrawing, { passive: false });
-            canvas.addEventListener('touchmove', draw, { passive: false });
-            window.addEventListener('touchend', stopDrawing);
-
-            clearBtn.addEventListener('click', () => {
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                isSigned = false;
-                updateSigStatus();
+            // Window resize handler for all active signature pads
+            window.addEventListener('resize', () => {
+                Object.values(signaturePads).forEach(pad => pad.resize());
             });
+
+            // ── Dynamic Travelers logic ────────────────────────────────────────────────
+            function addGuestForm() {
+                const index = guestCount;
+                const html = createGuestFormHTML(index);
+                const container = document.getElementById('guests-container');
+                
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html.trim();
+                const guestCard = tempDiv.firstChild;
+                container.appendChild(guestCard);
+                
+                guestCount++;
+
+                // Init signature pad
+                const canvas = document.getElementById(`g-${index}-canvas`);
+                initSignaturePad(canvas, index);
+
+                // Nacimiento age alert listener
+                const nacimientoInput = document.getElementById(`g-${index}-nacimiento`);
+                nacimientoInput.addEventListener('change', () => {
+                    checkGuestAge(index);
+                });
+
+                // Setup copy address logic for guest 2+
+                if (index > 0) {
+                    const sameAddressCheckbox = document.getElementById(`g-${index}-same-address`);
+                    sameAddressCheckbox.addEventListener('change', () => {
+                        const addressSection = document.getElementById(`g-${index}-address-section`);
+                        const calleInput = document.getElementById(`g-${index}-dir-calle`);
+                        const ciudadInput = document.getElementById(`g-${index}-dir-ciudad`);
+                        const cpInput = document.getElementById(`g-${index}-dir-cp`);
+                        const provinciaInput = document.getElementById(`g-${index}-dir-provincia`);
+                        const paisInput = document.getElementById(`g-${index}-dir-pais`);
+                        
+                        const inputs = [calleInput, ciudadInput, cpInput, provinciaInput, paisInput];
+                        
+                        if (sameAddressCheckbox.checked) {
+                            calleInput.value = document.getElementById('g-0-dir-calle').value;
+                            ciudadInput.value = document.getElementById('g-0-dir-ciudad').value;
+                            cpInput.value = document.getElementById('g-0-dir-cp').value;
+                            provinciaInput.value = document.getElementById('g-0-dir-provincia').value;
+                            paisInput.value = document.getElementById('g-0-dir-pais').value;
+                            
+                            addressSection.style.display = 'none';
+                            inputs.forEach(input => input.required = false);
+                        } else {
+                            addressSection.style.display = 'block';
+                            inputs.forEach(input => {
+                                input.value = '';
+                                input.required = true;
+                            });
+                        }
+                    });
+                }
+
+                // Show/hide remove traveler button
+                document.getElementById('remove-guest-btn').style.display = guestCount > 1 ? 'block' : 'none';
+
+                // Re-apply localization
+                applyTranslations();
+            }
+
+            function removeLastGuestForm() {
+                if (guestCount <= 1) return;
+                
+                const indexToRemove = guestCount - 1;
+                const card = document.getElementById(`guest-card-${indexToRemove}`);
+                if (card) {
+                    card.remove();
+                    delete signaturePads[indexToRemove];
+                    guestCount--;
+                }
+
+                document.getElementById('remove-guest-btn').style.display = guestCount > 1 ? 'block' : 'none';
+                updateBookingPaxNotice();
+            }
+
+            function checkGuestAge(index) {
+                const nacimientoInput = document.getElementById(`g-${index}-nacimiento`);
+                const dateStr = nacimientoInput.value;
+                const detailsSection = document.getElementById(`g-${index}-registry-details`);
+                const ageAlert = document.getElementById(`g-${index}-age-alert`);
+                
+                if (!dateStr) return;
+                
+                const birthDate = new Date(dateStr);
+                const today = new Date();
+                
+                let age = today.getFullYear() - birthDate.getFullYear();
+                const monthDiff = today.getMonth() - birthDate.getMonth();
+                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                    age--;
+                }
+                
+                const inputs = [
+                    document.getElementById(`g-${index}-doc-tipo`),
+                    document.getElementById(`g-${index}-doc-num`),
+                    document.getElementById(`g-${index}-doc-pais`),
+                    document.getElementById(`g-${index}-doc-emision`),
+                    document.getElementById(`g-${index}-dir-calle`),
+                    document.getElementById(`g-${index}-dir-ciudad`),
+                    document.getElementById(`g-${index}-dir-cp`),
+                    document.getElementById(`g-${index}-dir-provincia`),
+                    document.getElementById(`g-${index}-dir-pais`)
+                ].filter(el => el !== null);
+
+                if (age < minCheckinAge) {
+                    detailsSection.style.display = 'none';
+                    ageAlert.innerHTML = i18n[currentLanguage].ageAlertUnder.replace('{minAge}', minCheckinAge);
+                    ageAlert.style.display = 'block';
+                    inputs.forEach(input => input.required = false);
+                } else {
+                    detailsSection.style.display = 'block';
+                    ageAlert.style.display = 'none';
+                    
+                    inputs.forEach(input => {
+                        const sameAddressCheckbox = document.getElementById(`g-${index}-same-address`);
+                        if (sameAddressCheckbox && sameAddressCheckbox.checked) {
+                            const addressFields = ['dir-calle', 'dir-ciudad', 'dir-cp', 'dir-provincia', 'dir-pais'];
+                            const isAddressField = addressFields.some(field => input.id.includes(field));
+                            if (isAddressField) {
+                                input.required = false;
+                                return;
+                            }
+                        }
+                        input.required = true;
+                    });
+                    
+                    // Trigger signature pad canvas resize
+                    const pad = signaturePads[index];
+                    if (pad) {
+                        setTimeout(pad.resize, 100);
+                    }
+                }
+            }
+
+            document.getElementById('add-guest-btn').addEventListener('click', addGuestForm);
+            document.getElementById('remove-guest-btn').addEventListener('click', removeLastGuestForm);
 
             // ── Form Submission ──────────────────────────────────────────────────────
             const form = document.getElementById('checkin-form');
@@ -655,40 +1033,105 @@
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 
-                if (!isSigned) {
-                    alert('Por favor, firme el documento para poder continuar.');
+                const errors = [];
+                const guestsPayload = [];
+                
+                for (let i = 0; i < guestCount; i++) {
+                    const nombre = document.getElementById(`g-${i}-nombre`).value.trim();
+                    const email = document.getElementById(`g-${i}-email`).value.trim();
+                    const telefono = document.getElementById(`g-${i}-telefono`).value.trim();
+                    const nacimiento = document.getElementById(`g-${i}-nacimiento`).value;
+                    const sexo = document.getElementById(`g-${i}-sexo`).value;
+                    
+                    let isUnderAge = false;
+                    if (nacimiento) {
+                        const birthDate = new Date(nacimiento);
+                        const today = new Date();
+                        let age = today.getFullYear() - birthDate.getFullYear();
+                        const monthDiff = today.getMonth() - birthDate.getMonth();
+                        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                            age--;
+                        }
+                        isUnderAge = (age < minCheckinAge);
+                    }
+                    
+                    if (isUnderAge) {
+                        guestsPayload.push({
+                            nombre,
+                            nacimiento,
+                            sexo,
+                            underAge: true
+                        });
+                    } else {
+                        const pad = signaturePads[i];
+                        if (!pad || !pad.isSigned()) {
+                            errors.push(i);
+                        }
+                        
+                        const docTipo = document.getElementById(`g-${i}-doc-tipo`).value;
+                        const docNum = document.getElementById(`g-${i}-doc-num`).value.trim();
+                        const docPais = document.getElementById(`g-${i}-doc-pais`).value.trim();
+                        const docEmision = document.getElementById(`g-${i}-doc-emision`).value;
+                        
+                        let dirCalle = '';
+                        let dirCiudad = '';
+                        let dirCp = '';
+                        let dirProvincia = '';
+                        let dirPais = '';
+                        
+                        const sameAddressCheckbox = document.getElementById(`g-${i}-same-address`);
+                        if (sameAddressCheckbox && sameAddressCheckbox.checked) {
+                            dirCalle = document.getElementById('g-0-dir-calle').value.trim();
+                            dirCiudad = document.getElementById('g-0-dir-ciudad').value.trim();
+                            dirCp = document.getElementById('g-0-dir-cp').value.trim();
+                            dirProvincia = document.getElementById('g-0-dir-provincia').value.trim();
+                            dirPais = document.getElementById('g-0-dir-pais').value.trim();
+                        } else {
+                            dirCalle = document.getElementById(`g-${i}-dir-calle`).value.trim();
+                            dirCiudad = document.getElementById(`g-${i}-dir-ciudad`).value.trim();
+                            dirCp = document.getElementById(`g-${i}-dir-cp`).value.trim();
+                            dirProvincia = document.getElementById(`g-${i}-dir-provincia`).value.trim();
+                            dirPais = document.getElementById(`g-${i}-dir-pais`).value.trim();
+                        }
+                        
+                        const signatureImage = pad ? pad.getDataURL() : '';
+                        
+                        guestsPayload.push({
+                            nombre,
+                            email,
+                            telefono,
+                            nacimiento,
+                            sexo,
+                            docTipo,
+                            docNum,
+                            docPais,
+                            docEmision,
+                            direccion: {
+                                calle: dirCalle,
+                                ciudad: dirCiudad,
+                                cp: dirCp,
+                                provincia: dirProvincia,
+                                pais: dirPais
+                            },
+                            signature: signatureImage,
+                            underAge: false
+                        });
+                    }
+                }
+                
+                if (errors.length > 0) {
+                    alert(i18n[currentLanguage].sigWarningAlertMultiple.replace('{minAge}', minCheckinAge));
                     return;
                 }
-
-                // Gather values
-                const nombre = document.getElementById('f-nombre').value.trim();
-                const email = document.getElementById('f-email').value.trim();
-                const telefono = document.getElementById('f-telefono').value.trim();
-                const nacimiento = document.getElementById('f-nacimiento').value;
-                const sexo = document.getElementById('f-sexo').value;
                 
-                const docTipo = document.getElementById('f-doc-tipo').value;
-                const docNum = document.getElementById('f-doc-num').value.trim();
-                const docPais = document.getElementById('f-doc-pais').value.trim();
-                const docEmision = document.getElementById('f-doc-emision').value;
-
-                const dirCalle = document.getElementById('f-dir-calle').value.trim();
-                const dirCiudad = document.getElementById('f-dir-ciudad').value.trim();
-                const dirCp = document.getElementById('f-dir-cp').value.trim();
-                const dirProvincia = document.getElementById('f-dir-provincia').value.trim();
-                const dirPais = document.getElementById('f-dir-pais').value.trim();
-
                 const apt = bookingData ? bookingData.apt : fApt.value;
                 const entrada = bookingData ? bookingData.entrada : fEntrada.value;
                 const salida = bookingData ? bookingData.salida : fSalida.value;
-
-                // Signature image
-                const signatureImage = canvas.toDataURL('image/png');
-
+                
                 // UI loading
                 submitBtn.disabled = true;
                 btnSpinner.style.display = 'block';
-                btnText.textContent = 'Enviando...';
+                btnText.textContent = i18n[currentLanguage].btnCompleting;
 
                 const targetBookingId = bookingId || db.collection('checkins').doc().id;
 
@@ -697,25 +1140,7 @@
                     apt,
                     entrada,
                     salida,
-                    guest: {
-                        nombre,
-                        email,
-                        telefono,
-                        nacimiento,
-                        sexo,
-                        docTipo,
-                        docNum,
-                        docPais,
-                        docEmision,
-                        direccion: {
-                            calle: dirCalle,
-                            ciudad: dirCiudad,
-                            cp: dirCp,
-                            provincia: dirProvincia,
-                            pais: dirPais
-                        }
-                    },
-                    signature: signatureImage,
+                    guests: guestsPayload,
                     submittedAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
 
@@ -723,22 +1148,20 @@
                     // 1. Save to Firestore checkins collection
                     await db.collection('checkins').doc(targetBookingId).set(checkinPayload);
 
-                    // 2. Update booking status if applicable
-                    if (bookingId) {
-                        await db.collection('bookings').doc(bookingId).update({
-                            checkedIn: true
-                        });
-                    }
-
-                    // 3. Email notification via Web3Forms (dynamic)
+                    // 2. Email notification via Web3Forms (dynamic)
                     try {
                         const configDoc = await db.collection('settings').doc('global_config').get();
                         const config = configDoc.exists ? configDoc.data() : {};
                         
                         const key = config.web3forms_key;
-                        const adminEmail = config.admin_email || 'mmiravitllas@gmail.com'; // Fallback to super admin in config file
+                        const adminEmail = config.admin_email || 'mmiravitllas@gmail.com';
 
                         if (key) {
+                            let travelersHtml = '';
+                            guestsPayload.forEach((g, idx) => {
+                                travelersHtml += `\nViajero ${idx + 1}: ${g.nombre} (${g.underAge ? 'Menor de ' + minCheckinAge + ' años' : g.docTipo + ' ' + g.docNum})`;
+                            });
+
                             const emailBody = {
                                 access_key: key,
                                 subject: `Nuevo Check-in Online: ${apt} (${formatDateReadable(entrada)} a ${formatDateReadable(salida)})`,
@@ -747,18 +1170,16 @@
                                 "Apartamento": apt,
                                 "Check-in": formatDateReadable(entrada),
                                 "Check-out": formatDateReadable(salida),
-                                "Huésped Principal": nombre,
-                                "Email": email,
-                                "Teléfono": telefono,
-                                "Nacimiento": formatDateReadable(nacimiento),
-                                "Sexo": sexo,
-                                "Documento": `${docTipo} - Nº ${docNum} (${docPais})`,
-                                "Emisión Documento": formatDateReadable(docEmision),
-                                "Dirección Completa": `${dirCalle}, ${dirCiudad} (${dirCp}) - ${dirProvincia}, ${dirPais}`,
-                                "Mensaje": `Se ha recibido un nuevo registro de check-in digital. Los detalles completos se guardaron en la base de datos de reservas.`,
-                                // Attach signature base64 as data url text
-                                "Firma (Copia Base64)": signatureImage
+                                "Número de Viajeros": guestsPayload.length,
+                                "Resumen de Viajeros": travelersHtml,
+                                "Mensaje": `Se ha recibido un nuevo registro de check-in digital. Los detalles completos se guardaron en la base de datos de reservas.`
                             };
+
+                            if (guestsPayload.length > 0) {
+                                emailBody["Huésped Principal"] = guestsPayload[0].nombre;
+                                emailBody["Email"] = guestsPayload[0].email;
+                                emailBody["Teléfono"] = guestsPayload[0].telefono;
+                            }
 
                             await fetch('https://api.web3forms.com/submit', {
                                 method: 'POST',
@@ -782,13 +1203,131 @@
 
                 } catch (err) {
                     console.error('Error guardando el check-in:', err);
-                    alert('Hubo un error al guardar sus datos de registro. Por favor, inténtelo de nuevo.');
+                    alert(i18n[currentLanguage].errorText);
                     submitBtn.disabled = false;
                     btnSpinner.style.display = 'none';
-                    btnText.textContent = 'Completar Check-in';
+                    btnText.textContent = i18n[currentLanguage].btnComplete;
                 }
             });
         });
+
+        // ── Localization Switcher ──────────────────────────────────────────────────
+        function setLanguage(lang) {
+            currentLanguage = lang;
+            
+            document.getElementById('lang-es-btn').classList.toggle('active', lang === 'es');
+            document.getElementById('lang-en-btn').classList.toggle('active', lang === 'en');
+            
+            applyTranslations();
+        }
+
+        function updateBookingPaxNotice() {
+            const noticeEl = document.getElementById('booking-pax-notice');
+            if (bookingData && bookingData.pax && noticeEl) {
+                noticeEl.innerHTML = i18n[currentLanguage].bookingNotice
+                    .replace('{pax}', bookingData.pax)
+                    .replace('{minAge}', minCheckinAge);
+                noticeEl.style.display = 'block';
+            } else if (noticeEl) {
+                noticeEl.style.display = 'none';
+            }
+        }
+
+        function applyTranslations() {
+            const keys = i18n[currentLanguage];
+            
+            // Translate static labels
+            const staticElements = {
+                'loading-text': 'loadingConfig',
+                'lbl-stay-details': 'lblStayDetails',
+                'lbl-f-apt': 'lblFapt',
+                'lbl-f-entrada': 'lblFentrada',
+                'lbl-f-salida': 'lblFsalida',
+                'lbl-info-apt': 'lblStayDetails', // Re-use Apt label
+                'lbl-add-guest': 'lblAddGuest',
+                'lbl-remove-guest': 'lblRemoveGuest',
+                'btn-text': 'btnComplete',
+                'success-title': 'successTitle',
+                'success-text': 'successText'
+            };
+            
+            Object.entries(staticElements).forEach(([id, key]) => {
+                const el = document.getElementById(id);
+                if (el) {
+                    if (id === 'success-text') {
+                        el.innerHTML = keys[key];
+                    } else {
+                        el.textContent = keys[key];
+                    }
+                }
+            });
+
+            // Re-label dynamic text headers
+            const titleEl = document.querySelector('.header h1');
+            if (titleEl) titleEl.textContent = keys.title;
+            const subtitleEl = document.querySelector('.header .subtitle');
+            if (subtitleEl) subtitleEl.textContent = keys.subtitle;
+            document.title = keys.title + " - Check-in Online";
+
+            updateBookingPaxNotice();
+
+            // Translate elements inside the dynamic traveler cards
+            document.querySelectorAll('[data-key]').forEach(el => {
+                const key = el.getAttribute('data-key');
+                const idx = el.getAttribute('data-index');
+                
+                if (key && keys[key]) {
+                    if (key === 'guest-title') {
+                        const isMain = (parseInt(idx, 10) === 0);
+                        el.textContent = isMain ? keys.mainGuestTitle : keys.additionalGuestTitle.replace('{num}', parseInt(idx, 10) + 1);
+                    } else {
+                        el.textContent = keys[key];
+                    }
+                }
+            });
+
+            // Translate age alerts and option items specifically
+            document.querySelectorAll('.guest-card').forEach(card => {
+                const idx = parseInt(card.id.split('-').pop(), 10);
+                const isMain = (idx === 0);
+                
+                // Email field label
+                const emailLabel = document.getElementById(`lbl-g-${idx}-email`);
+                if (emailLabel) {
+                    emailLabel.textContent = isMain ? keys.lblEmail : keys.lblEmailOpt;
+                }
+                
+                // Phone field label
+                const phoneLabel = document.getElementById(`lbl-g-${idx}-telefono`);
+                if (phoneLabel) {
+                    phoneLabel.textContent = isMain ? keys.lblTelefono : keys.lblTelefonoOpt;
+                }
+
+                // Age alert label
+                const ageAlert = document.getElementById(`g-${idx}-age-alert`);
+                if (ageAlert && ageAlert.style.display !== 'none') {
+                    ageAlert.innerHTML = keys.ageAlertUnder.replace('{minAge}', minCheckinAge);
+                }
+            });
+
+            // Update placeholders
+            document.querySelectorAll('input, select, textarea').forEach(el => {
+                const id = el.id || '';
+                if (id.includes('-nombre')) el.placeholder = currentLanguage === 'es' ? 'Ej: Juan Pérez García' : 'e.g. John Smith';
+                if (id.includes('-email')) el.placeholder = 'ejemplo@correo.com';
+                if (id.includes('-telefono')) el.placeholder = currentLanguage === 'es' ? '+34 600 000 000' : '+1 555 123 4567';
+                if (id.includes('-doc-num')) el.placeholder = currentLanguage === 'es' ? 'Ej: 12345678Z' : 'e.g. Passport number';
+                if (id.includes('-doc-pais')) el.placeholder = currentLanguage === 'es' ? 'Ej: España' : 'e.g. Spain';
+                if (id.includes('-dir-calle')) el.placeholder = currentLanguage === 'es' ? 'Ej: Calle Mayor 15, 2ºB' : 'e.g. 123 Main St';
+                if (id.includes('-dir-ciudad')) el.placeholder = currentLanguage === 'es' ? 'Ej: Madrid' : 'e.g. London';
+                if (id.includes('-dir-cp')) el.placeholder = currentLanguage === 'es' ? 'Ej: 28001' : 'e.g. SW1A 1AA';
+                if (id.includes('-dir-provincia')) el.placeholder = currentLanguage === 'es' ? 'Ej: Madrid' : 'e.g. London';
+                if (id.includes('-dir-pais')) el.placeholder = currentLanguage === 'es' ? 'Ej: España' : 'e.g. United Kingdom';
+            });
+
+            // Update signature statuses
+            Object.values(signaturePads).forEach(pad => pad.updateStatus());
+        }
     </script>
 
 </body>

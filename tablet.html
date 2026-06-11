@@ -239,6 +239,10 @@
                         <input type="email" id="config-admin-email" class="bf-input" placeholder="ejemplo@correo.com">
                     </div>
                     <div style="margin-bottom: 10px;">
+                        <label class="r-label" for="config-min-age">Edad mínima check-in (Viajeros):</label>
+                        <input type="number" id="config-min-age" class="bf-input" min="0" value="14">
+                    </div>
+                    <div style="margin-bottom: 10px;">
                         <label class="r-label" for="config-web3forms-key">Clave Web3Forms (Opcional):</label>
                         <input type="text" id="config-web3forms-key" class="bf-input" placeholder="Clave de web3forms.com">
                     </div>
@@ -386,30 +390,8 @@
                         <div><strong>Salida:</strong> <span id="civ-salida">-</span></div>
                     </div>
                     
-                    <div style="grid-column: 1 / -1; font-weight:700; border-bottom:1px solid #ccc; padding-bottom:2px; margin-top:8px; color:#2563eb; text-transform:uppercase; font-size:0.75rem; letter-spacing:0.5px;">Datos del Viajero</div>
-                    <div><strong>Nombre Completo:</strong> <span id="civ-nombre">-</span></div>
-                    <div><strong>Email:</strong> <span id="civ-email">-</span></div>
-                    <div><strong>Teléfono:</strong> <span id="civ-telefono">-</span></div>
-                    <div><strong>Fecha de Nacimiento:</strong> <span id="civ-nacimiento">-</span></div>
-                    <div><strong>Sexo:</strong> <span id="civ-sexo">-</span></div>
-                    
-                    <div style="grid-column: 1 / -1; font-weight:700; border-bottom:1px solid #ccc; padding-bottom:2px; margin-top:8px; color:#2563eb; text-transform:uppercase; font-size:0.75rem; letter-spacing:0.5px;">Documento de Identificación</div>
-                    <div><strong>Tipo de Documento:</strong> <span id="civ-doc-tipo">-</span></div>
-                    <div><strong>Número de Documento:</strong> <span id="civ-doc-num">-</span></div>
-                    <div><strong>País de Expedición:</strong> <span id="civ-doc-pais">-</span></div>
-                    <div><strong>Fecha de Emisión:</strong> <span id="civ-doc-emision">-</span></div>
-                    
-                    <div style="grid-column: 1 / -1; font-weight:700; border-bottom:1px solid #ccc; padding-bottom:2px; margin-top:8px; color:#2563eb; text-transform:uppercase; font-size:0.75rem; letter-spacing:0.5px;">Dirección de Residencia</div>
-                    <div style="grid-column: 1 / -1;"><strong>Dirección:</strong> <span id="civ-dir-calle">-</span></div>
-                    <div><strong>Ciudad:</strong> <span id="civ-dir-ciudad">-</span></div>
-                    <div><strong>Código Postal:</strong> <span id="civ-dir-cp">-</span></div>
-                    <div><strong>Provincia:</strong> <span id="civ-dir-provincia">-</span></div>
-                    <div><strong>País de Residencia:</strong> <span id="civ-dir-pais">-</span></div>
-                    
-                    <!-- Signature Section -->
-                    <div style="grid-column: 1 / -1; display:flex; flex-direction:column; align-items:center; margin-top:20px; border:1px solid #ccc; border-radius:8px; padding:10px;">
-                        <span style="font-size:0.75rem; font-weight:600; color:#555; text-transform:uppercase; margin-bottom:8px;">Firma del Viajero</span>
-                        <img id="civ-signature-img" src="" alt="Firma digital" style="max-height:100px; max-width:100%; object-fit:contain; border:1px dashed #eee; background-color:#fafafa;">
+                    <div id="checkin-guests-list" style="grid-column: 1 / -1; display: flex; flex-direction: column; gap: 20px;">
+                        <!-- List of guests dynamically populated -->
                     </div>
                 </div>
                 <div style="text-align:center; font-size:0.75rem; color:#777; margin-top:20px; border-top:1px dashed #ccc; padding-top:10px;">

@@ -676,9 +676,13 @@
         document.addEventListener('DOMContentLoaded', () => {
             const db = firebase.firestore();
             
-            // Get booking ID from query param
+            // Get booking ID and parameters from query params
             const urlParams = new URLSearchParams(window.location.search);
             const bookingId = urlParams.get('bookingId');
+            const urlApt = urlParams.get('apt');
+            const urlEntrada = urlParams.get('entrada');
+            const urlSalida = urlParams.get('salida');
+            const urlPax = urlParams.get('pax');
 
             const loadingEl = document.getElementById('loading');
             const formBoxEl = document.getElementById('form-box');
@@ -694,8 +698,35 @@
             const fEntrada = document.getElementById('f-entrada');
             const fSalida = document.getElementById('f-salida');
 
-            // Load booking details
-            if (bookingId) {
+            // Setup onload logic: prioritize URL parameters if present
+            if (urlApt && urlEntrada && urlSalida) {
+                bookingData = {
+                    apt: urlApt,
+                    entrada: urlEntrada,
+                    salida: urlSalida,
+                    pax: urlPax ? parseInt(urlPax, 10) : null
+                };
+
+                infoApt.textContent = urlApt;
+                infoEntrada.textContent = formatDateReadable(urlEntrada);
+                infoSalida.textContent = formatDateReadable(urlSalida);
+
+                fApt.value = urlApt;
+                fEntrada.value = urlEntrada;
+                fSalida.value = urlSalida;
+
+                // Disable fields as stay info is pre-filled and locked
+                fApt.disabled = true;
+                fEntrada.readOnly = true;
+                fSalida.readOnly = true;
+
+                staySectionEl.style.display = 'block';
+                loadingEl.style.display = 'none';
+                formBoxEl.style.display = 'block';
+
+                loadSettingsAndInitialize();
+            } else if (bookingId) {
+                // Fallback: fetch from database
                 db.collection('bookings').doc(bookingId).get()
                     .then(doc => {
                         if (doc.exists) {
@@ -705,11 +736,15 @@
                             infoEntrada.textContent = formatDateReadable(bookingData.entrada);
                             infoSalida.textContent = formatDateReadable(bookingData.salida);
                             
-                            // Keep inputs synchronized in case they are needed
                             fApt.value = bookingData.apt || 'Loft';
                             fEntrada.value = bookingData.entrada || '';
                             fSalida.value = bookingData.salida || '';
+
+                            fApt.disabled = true;
+                            fEntrada.readOnly = true;
+                            fSalida.readOnly = true;
                             
+                            staySectionEl.style.display = 'block';
                             loadingEl.style.display = 'none';
                             formBoxEl.style.display = 'block';
 
@@ -736,6 +771,10 @@
                 fApt.required = true;
                 fEntrada.required = true;
                 fSalida.required = true;
+
+                fApt.disabled = false;
+                fEntrada.readOnly = false;
+                fSalida.readOnly = false;
 
                 loadingEl.style.display = 'none';
                 formBoxEl.style.display = 'block';
@@ -1203,7 +1242,7 @@
 
                 } catch (err) {
                     console.error('Error guardando el check-in:', err);
-                    alert(i18n[currentLanguage].errorText);
+                    alert(i18n[currentLanguage].errorText + "\n\nDetalles / Details: " + err.message);
                     submitBtn.disabled = false;
                     btnSpinner.style.display = 'none';
                     btnText.textContent = i18n[currentLanguage].btnComplete;
@@ -1244,6 +1283,8 @@
                 'lbl-f-entrada': 'lblFentrada',
                 'lbl-f-salida': 'lblFsalida',
                 'lbl-info-apt': 'lblStayDetails', // Re-use Apt label
+                'lbl-info-entrada': 'lblFentrada',
+                'lbl-info-salida': 'lblFsalida',
                 'lbl-add-guest': 'lblAddGuest',
                 'lbl-remove-guest': 'lblRemoveGuest',
                 'btn-text': 'btnComplete',

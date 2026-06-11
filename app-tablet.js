@@ -1392,8 +1392,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (ttCopyCheckin) {
         ttCopyCheckin.addEventListener('click', () => {
             if (!currentBookingId) return;
+            
+            const booking = allBookings.find(b => b.id === currentBookingId);
+            let checkinUrl = '';
             const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
-            const checkinUrl = `${window.location.origin}${path}/checkin.html?bookingId=${currentBookingId}`;
+            
+            if (booking) {
+                const aptParam = encodeURIComponent(booking.apt || '');
+                const startParam = booking.entrada || '';
+                const endParam = booking.salida || '';
+                const paxParam = booking.pax || '';
+                checkinUrl = `${window.location.origin}${path}/checkin.html?bookingId=${currentBookingId}&apt=${aptParam}&entrada=${startParam}&salida=${endParam}&pax=${paxParam}`;
+            } else {
+                checkinUrl = `${window.location.origin}${path}/checkin.html?bookingId=${currentBookingId}`;
+            }
             
             navigator.clipboard.writeText(checkinUrl)
                 .then(() => {

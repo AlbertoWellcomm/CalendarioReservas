@@ -56,6 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const checkinViewModal = document.getElementById('checkin-view-modal');
     const checkinPrintBtn  = document.getElementById('checkin-print-btn');
     const checkinCloseBtn  = document.getElementById('checkin-close-btn');
+    const checkinDeleteBtn = document.getElementById('checkin-delete-btn');
 
     const civApt          = document.getElementById('civ-apt');
     const civEntrada      = document.getElementById('civ-entrada');
@@ -1504,6 +1505,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if (checkinCloseBtn) {
         checkinCloseBtn.addEventListener('click', () => {
             if (checkinViewModal) checkinViewModal.classList.add('hidden');
+        });
+    }
+
+    if (checkinDeleteBtn) {
+        checkinDeleteBtn.addEventListener('click', async () => {
+            if (!currentBookingId) return;
+            if (confirm('¿Estás seguro de que deseas eliminar esta ficha de viajeros?\n\nEsta acción no se puede deshacer. Una vez eliminada, el cliente podrá usar el mismo enlace de check-in para volver a rellenarla correctamente.')) {
+                try {
+                    await db.collection('checkins').doc(currentBookingId).delete();
+                    alert('Ficha eliminada correctamente.');
+                    if (checkinViewModal) checkinViewModal.classList.add('hidden');
+                } catch (err) {
+                    alert('Error al eliminar la ficha: ' + err.message);
+                }
+            }
         });
     }
 

@@ -12,6 +12,7 @@
     <!-- Firebase SDKs (compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="firebase-config.js"></script>
 
     <style>
@@ -673,8 +674,15 @@
             `;
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             const db = firebase.firestore();
+            const auth = firebase.auth();
+            try {
+                await auth.signInAnonymously();
+            } catch (err) {
+                console.error("Auth error:", err);
+                alert("🚨 ATENCIÓN: El inicio de sesión anónimo falló. Debes habilitarlo en Firebase Console -> Authentication -> Sign-in method -> Anónimo. Detalle: " + err.message);
+            }
             
             // Get booking ID and parameters from query params
             const urlParams = new URLSearchParams(window.location.search);

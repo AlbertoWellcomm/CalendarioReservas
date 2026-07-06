@@ -573,6 +573,7 @@ body {
    ============================ */
 @media print {
     @page {
+        size: A4 portrait;
         margin: 0; /* Eliminates browser default headers/footers (URL, page title, etc) */
     }
     body {

@@ -416,6 +416,14 @@
                     </button>
                 </div>
 
+                <!-- Privacy Policy Consent -->
+                <div class="field full-width" style="margin-bottom: 1.5rem; flex-direction: row; gap: 8px; align-items: center; justify-content: center;">
+                    <input type="checkbox" id="privacy-consent" required style="width: auto; margin: 0; cursor: pointer; transform: scale(1.1);">
+                    <label for="privacy-consent" id="lbl-privacy" style="text-transform: none; font-size: 0.9rem; font-weight: normal; cursor: pointer; display: inline-block; color: var(--text-color); margin: 0;">
+                        He leído y acepto la <a href="#" target="_blank" style="color: var(--accent); text-decoration: underline;">Política de Privacidad</a> *
+                    </label>
+                </div>
+
                 <button type="submit" class="submit-btn" id="submit-btn">
                     <div class="spinner" id="btn-spinner"></div>
                     <span id="btn-text">Completar Check-in</span>
@@ -491,7 +499,8 @@
                 bookingNotice: "Esta reserva es para <strong>{pax} personas</strong>. Por favor, registre a todos los huéspedes mayores de {minAge} años.",
                 fillRequiredFields: "Por favor, rellene todos los campos obligatorios.",
                 errorTitle: "Error al guardar",
-                errorText: "Hubo un error al guardar sus datos de registro. Por favor, inténtelo de nuevo."
+                errorText: "Hubo un error al guardar sus datos de registro. Por favor, inténtelo de nuevo.",
+                lblPrivacy: "He leído y acepto la <a href='#' target='_blank' style='color: var(--accent); text-decoration: underline;'>Política de Privacidad</a> *"
             },
             en: {
                 title: "Traveler Registration",
@@ -547,7 +556,8 @@
                 bookingNotice: "This booking is for <strong>{pax} persons</strong>. Please register all guests older than {minAge} years.",
                 fillRequiredFields: "Please fill in all required fields.",
                 errorTitle: "Error saving data",
-                errorText: "There was an error saving your registration details. Please try again."
+                errorText: "There was an error saving your registration details. Please try again.",
+                lblPrivacy: "I have read and accept the <a href='#' target='_blank' style='color: var(--accent); text-decoration: underline;'>Privacy Policy</a> *"
             }
         };
 
@@ -1297,13 +1307,14 @@
                 'lbl-remove-guest': 'lblRemoveGuest',
                 'btn-text': 'btnComplete',
                 'success-title': 'successTitle',
-                'success-text': 'successText'
+                'success-text': 'successText',
+                'lbl-privacy': 'lblPrivacy'
             };
             
             Object.entries(staticElements).forEach(([id, key]) => {
                 const el = document.getElementById(id);
                 if (el) {
-                    if (id === 'success-text') {
+                    if (id === 'success-text' || id === 'lbl-privacy') {
                         el.innerHTML = keys[key];
                     } else {
                         el.textContent = keys[key];

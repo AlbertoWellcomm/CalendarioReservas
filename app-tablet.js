@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const ttComisiones = document.getElementById('tt-comisiones');
     const ttNeto = document.getElementById('tt-neto');
     const ttNotas = document.getElementById('tt-notas');
+    const ttTasaPagada = document.getElementById('tt-tasa-pagada');
 
     const ttEditBtn = document.getElementById('tt-edit-booking');
     const ttDeleteBtn = document.getElementById('tt-delete-booking');
@@ -43,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const bfComisiones = document.getElementById('bf-comisiones');
     const bfNeto = document.getElementById('bf-neto');
     const bfNotas = document.getElementById('bf-notas');
+    const bfTasaPagada = document.getElementById('bf-tasa-pagada');
     const addBookingBtn = document.getElementById('add-booking-btn');
 
     // Tourist Check-in Elements
@@ -149,6 +151,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (ttComisiones) ttComisiones.textContent = props.comisiones !== undefined ? formatCurrency(props.comisiones) : '-';
         if (ttNeto) ttNeto.textContent = props.neto !== undefined ? formatCurrency(props.neto) : '-';
         if (ttNotas) ttNotas.textContent = props.notas || '-';
+        
+        if (ttTasaPagada) {
+            ttTasaPagada.textContent = props.tasaPagada ? 'Sí' : 'Pendiente';
+            ttTasaPagada.style.color = props.tasaPagada ? '#7ee787' : '#ff7b72';
+        }
         
         currentBookingId = props.firestoreId || info.event.id;
         
@@ -393,7 +400,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 comisiones:  data.comisiones,
                 neto:        data.neto,
                 notas:       data.notas,
-                broker:      data.broker
+                broker:      data.broker,
+                tasaPagada:  data.tasaPagada || false
             }
         };
     }
@@ -430,6 +438,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (bfComisiones) bfComisiones.value = data.comisiones || '';
             if (bfNeto) bfNeto.value = data.neto || '';
             if (bfNotas) bfNotas.value = data.notas || '';
+            if (bfTasaPagada) bfTasaPagada.checked = data.tasaPagada || false;
         }
 
         if (bfEntrada && bfSalida) {
@@ -464,6 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
             comisiones: parseFloat(formData.comisiones) || 0,
             neto: parseFloat(formData.neto) || 0,
             notas: formData.notas || '',
+            tasaPagada: formData.tasaPagada || false,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
@@ -535,7 +545,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 bruto: bfBruto.value,
                 comisiones: bfComisiones.value,
                 neto: bfNeto.value,
-                notas: bfNotas.value
+                notas: bfNotas.value,
+                tasaPagada: bfTasaPagada ? bfTasaPagada.checked : false
             };
             if (new Date(fd.salida) <= new Date(fd.entrada)) {
                 alert('Check-out debe ser posterior al Check-in.');

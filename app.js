@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const ttComisiones = document.getElementById('tt-comisiones');
     const ttNeto       = document.getElementById('tt-neto');
     const ttNotas      = document.getElementById('tt-notas');
+    const ttTasaPagada = document.getElementById('tt-tasa-pagada');
 
     // Admin CRUD
     const addBookingBtn    = document.getElementById('add-booking-btn');
@@ -39,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const bfComisiones     = document.getElementById('bf-comisiones');
     const bfNeto           = document.getElementById('bf-neto');
     const bfNotas          = document.getElementById('bf-notas');
+    const bfTasaPagada     = document.getElementById('bf-tasa-pagada');
     const ttEditBtn        = document.getElementById('tt-edit-booking');
     const ttDeleteBtn      = document.getElementById('tt-delete-booking');
 
@@ -228,7 +230,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 bruto:       data.bruto,
                 comisiones:  data.comisiones,
                 neto:        data.neto,
-                notas:       data.notas       || ''
+                notas:       data.notas       || '',
+                tasaPagada:  data.tasaPagada  || false
             }
         };
     }
@@ -246,6 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
             comisiones: parseFloat(formData.comisiones)|| 0,
             neto:       parseFloat(formData.neto)     || 0,
             notas:      formData.notas      || '',
+            tasaPagada: formData.tasaPagada || false,
             updatedAt:  firebase.firestore.FieldValue.serverTimestamp()
         };
 
@@ -350,6 +354,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (ttComisiones) ttComisiones.textContent = props.comisiones != null ? formatCurrency(props.comisiones) : '-';
         if (ttNeto)       ttNeto.textContent       = props.neto       != null ? formatCurrency(props.neto)       : '-';
         if (ttNotas)      ttNotas.textContent      = props.notas      || '-';
+        
+        if (ttTasaPagada) {
+            ttTasaPagada.textContent = props.tasaPagada ? 'Sí' : 'Pendiente';
+            ttTasaPagada.style.color = props.tasaPagada ? '#7ee787' : '#ff7b72';
+        }
 
         const startStr = info.event.start ? formatDateISO(info.event.start) : '?';
         const endStr   = info.event.end   ? formatDateISO(info.event.end)   : '?';
@@ -442,6 +451,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (bfComisiones) bfComisiones.value = data.comisiones || '';
             if (bfNeto)       bfNeto.value       = data.neto       || '';
             if (bfNotas)      bfNotas.value      = data.notas      || '';
+            if (bfTasaPagada) bfTasaPagada.checked = data.tasaPagada || false;
         }
 
         if (bfEntrada && bfSalida) {
@@ -501,7 +511,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 bruto:      bfBruto      ? bfBruto.value     : 0,
                 comisiones: bfComisiones ? bfComisiones.value: 0,
                 neto:       bfNeto       ? bfNeto.value      : 0,
-                notas:      bfNotas      ? bfNotas.value     : ''
+                notas:      bfNotas      ? bfNotas.value     : '',
+                tasaPagada: bfTasaPagada ? bfTasaPagada.checked : false
             };
             if (new Date(fd.salida) <= new Date(fd.entrada)) {
                 alert('Check-out debe ser posterior al Check-in.');

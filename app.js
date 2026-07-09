@@ -854,7 +854,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 const allEvents = typeof calendar !== 'undefined' && calendar ? calendar.getEvents() : [];
-                const match = allEvents.find(ev => ev.extendedProps.apt === r.apt && ev.startStr.startsWith((r.checkin || '').split('T')[0]));
+                const checkinDateStr = r.checkin ? formatDateISO(new Date(r.checkin)) : '';
+                const match = allEvents.find(ev => (ev.extendedProps.apt || '').toLowerCase() === (r.apt || '').toLowerCase() && (ev.startStr === checkinDateStr || (ev.start && formatDateISO(ev.start) === checkinDateStr)));
                 const isPaid = match ? (match.extendedProps.tasaPagada ? '✅' : '❌') : '❔';
 
                 const tr = document.createElement('tr');
@@ -895,7 +896,8 @@ document.addEventListener('DOMContentLoaded', () => {
             let csv = 'ID,Fecha Check-in,Alojamiento,Pax,Noches,Total(EUR),Pagada,Fecha Emision\n';
             const allEvents = typeof calendar !== 'undefined' && calendar ? calendar.getEvents() : [];
             currentFilteredReceipts.forEach(r => {
-                const match = allEvents.find(ev => ev.extendedProps.apt === r.apt && ev.startStr.startsWith((r.checkin || '').split('T')[0]));
+                const checkinDateStr = r.checkin ? formatDateISO(new Date(r.checkin)) : '';
+                const match = allEvents.find(ev => (ev.extendedProps.apt || '').toLowerCase() === (r.apt || '').toLowerCase() && (ev.startStr === checkinDateStr || (ev.start && formatDateISO(ev.start) === checkinDateStr)));
                 const isPaid = match ? (match.extendedProps.tasaPagada ? 'Si' : 'No') : 'Desconocido';
                 csv += `"${r.id}","${formatReceiptDate(r.checkin)}","${r.apt}","${r.pax}","${r.nights}","${r.total.toFixed(2)}","${isPaid}","${new Date(r.dateEmitted).toLocaleString('es-ES')}"\n`;
             });

@@ -853,6 +853,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (m >= 3 && m <= 9) { p1T += r.total; p1C++; } else { p2T += r.total; p2C++; }
                 }
 
+                const allEvents = typeof calendar !== 'undefined' && calendar ? calendar.getEvents() : [];
+                const match = allEvents.find(ev => ev.extendedProps.apt === r.apt && ev.startStr.startsWith((r.checkin || '').split('T')[0]));
+                const isPaid = match ? (match.extendedProps.tasaPagada ? '✅' : '❌') : '❔';
+
                 const tr = document.createElement('tr');
                 tr.style.borderBottom = '1px solid #f2f4f7';
                 tr.innerHTML = `
@@ -862,6 +866,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td style="padding:12px 10px; text-align:center;">${r.pax}</td>
                     <td style="padding:12px 10px; text-align:center;">${r.nights}</td>
                     <td style="padding:12px 10px; text-align:right; font-weight:600;">${formatCurrency(r.total)}</td>
+                    <td style="padding:12px 10px; text-align:center; font-size:1.1rem;" title="${match ? (match.extendedProps.tasaPagada ? 'Pagada' : 'Pendiente') : 'Reserva no encontrada'}">${isPaid}</td>
                     <td style="padding:12px 10px; text-align:center;">
                         <button onclick="deleteReceipt('${doc.id}')" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:#d92d20;" title="Eliminar recibo">🗑️</button>
                     </td>
@@ -887,9 +892,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (registryExportBtn) {
         registryExportBtn.addEventListener('click', () => {
             if (!currentFilteredReceipts.length) { alert('No hay recibos para exportar.'); return; }
-            let csv = 'ID,Fecha Check-in,Alojamiento,Pax,Noches,Total(EUR),Fecha Emision\n';
+            let csv = 'ID,Fecha Check-in,Alojamiento,Pax,Noches,Total(EUR),Pagada,Fecha Emision\n';
+            const allEvents = typeof calendar !== 'undefined' && calendar ? calendar.getEvents() : [];
             currentFilteredReceipts.forEach(r => {
-                csv += `"${r.id}","${formatReceiptDate(r.checkin)}","${r.apt}","${r.pax}","${r.nights}","${r.total.toFixed(2)}","${new Date(r.dateEmitted).toLocaleString('es-ES')}"\n`;
+                const match = allEvents.find(ev => ev.extendedProps.apt === r.apt && ev.startStr.startsWith((r.checkin || '').split('T')[0]));
+                const isPaid = match ? (match.extendedProps.tasaPagada ? 'Si' : 'No') : 'Desconocido';
+                csv += `"${r.id}","${formatReceiptDate(r.checkin)}","${r.apt}","${r.pax}","${r.nights}","${r.total.toFixed(2)}","${isPaid}","${new Date(r.dateEmitted).toLocaleString('es-ES')}"\n`;
             });
             const a = Object.assign(document.createElement('a'), {
                 href: URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8;' })),

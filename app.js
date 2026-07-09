@@ -931,15 +931,21 @@ document.addEventListener('DOMContentLoaded', () => {
         configBackupBtn.addEventListener('click', async () => {
             try {
                 if (typeof db === 'undefined') throw new Error("Base de datos no inicializada");
-                const snapshot = await db.collection('bookings').get();
-                const bookings = [];
-                snapshot.forEach(doc => bookings.push({ id: doc.id, ...doc.data() }));
                 
-                const dataStr = JSON.stringify({ type: 'cr_backup', timestamp: new Date().toISOString(), bookings }, null, 2);
+                const collections = ['bookings', 'checkins', 'receipts'];
+                const exportData = { type: 'cr_backup', timestamp: new Date().toISOString() };
+                
+                for (const coll of collections) {
+                    const snapshot = await db.collection(coll).get();
+                    exportData[coll] = [];
+                    snapshot.forEach(doc => exportData[coll].push({ id: doc.id, ...doc.data() }));
+                }
+                
+                const dataStr = JSON.stringify(exportData, null, 2);
                 const blob = new Blob([dataStr], { type: 'application/json' });
                 const a = Object.assign(document.createElement('a'), {
                     href: URL.createObjectURL(blob),
-                    download: `cr_reservas_${new Date().toISOString().slice(0,10)}.json`
+                    download: `cr_backup_completo_${new Date().toISOString().slice(0,10)}.json`
                 });
                 a.click();
                 URL.revokeObjectURL(a.href);
@@ -962,30 +968,37 @@ document.addEventListener('DOMContentLoaded', () => {
                         alert('El archivo no es una copia de seguridad válida.');
                         return;
                     }
-                    if (!confirm(`¿Restaurar ${data.bookings.length} reservas?\nAtención: Las reservas existentes NO se borrarán. Las que coincidan en ID se sobrescribirán y el resto se añadirán.`)) return;
+                    
+                    const collectionsToRestore = ['bookings', 'checkins', 'receipts'].filter(c => Array.isArray(data[c]));
+                    let totalItems = collectionsToRestore.reduce((acc, c) => acc + data[c].length, 0);
+                    
+                    if (!confirm(`¿Restaurar una copia de seguridad con ${totalItems} registros (incluyendo check-ins y recibos)?\nAtención: Los registros existentes con el mismo ID se sobrescribirán.`)) return;
 
                     if (typeof db === 'undefined') throw new Error("Base de datos no inicializada");
                     
                     const batch = db.batch();
                     let count = 0;
-                    data.bookings.forEach(b => {
-                        const id = b.id;
-                        delete b.id; // Remover el ID interno antes de guardar
-                        
-                        // Si existen timestamps serializados como {seconds, nanoseconds}, convertirlos
-                        if (b.createdAt && b.createdAt.seconds) {
-                            b.createdAt = new firebase.firestore.Timestamp(b.createdAt.seconds, b.createdAt.nanoseconds);
-                        }
-                        if (b.updatedAt && b.updatedAt.seconds) {
-                            b.updatedAt = new firebase.firestore.Timestamp(b.updatedAt.seconds, b.updatedAt.nanoseconds);
-                        }
-                        
-                        const docRef = db.collection('bookings').doc(id);
-                        batch.set(docRef, b, { merge: true });
-                        count++;
-                    });
+                    
+                    for (const coll of collectionsToRestore) {
+                        data[coll].forEach(item => {
+                            const id = item.id;
+                            delete item.id;
+                            
+                            if (item.createdAt && item.createdAt.seconds) {
+                                item.createdAt = new firebase.firestore.Timestamp(item.createdAt.seconds, item.createdAt.nanoseconds);
+                            }
+                            if (item.updatedAt && item.updatedAt.seconds) {
+                                item.updatedAt = new firebase.firestore.Timestamp(item.updatedAt.seconds, item.updatedAt.nanoseconds);
+                            }
+                            
+                            const docRef = db.collection(coll).doc(id);
+                            batch.set(docRef, item, { merge: true });
+                            count++;
+                        });
+                    }
+                    
                     await batch.commit();
-                    alert(`¡Se restauraron ${count} reservas correctamente!`);
+                    alert(`¡Se restauraron ${count} registros correctamente!`);
                     configModal?.classList.add('hidden');
                 } catch(err) {
                     alert('Error al restaurar: ' + err.message);

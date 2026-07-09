@@ -259,6 +259,15 @@
                     </div>
                     <div class="receipt-divider"></div>
                     <div class="receipt-row" style="flex-direction:column;align-items:flex-start;gap:8px">
+                        <p class="r-label" style="font-size:.9rem">Copias de Seguridad (Datos en la nube)</p>
+                        <div style="display:flex;gap:10px;width:100%;">
+                            <button id="config-backup-btn" class="action-btn" style="flex:1;">⬇️ Exportar JSON</button>
+                            <button id="config-restore-btn" class="action-btn" style="flex:1;">⬆️ Restaurar JSON</button>
+                            <input type="file" id="config-restore-file" style="display:none;" accept=".json">
+                        </div>
+                    </div>
+                    <div class="receipt-divider"></div>
+                    <div class="receipt-row" style="flex-direction:column;align-items:flex-start;gap:8px">
                         <p class="r-label" style="font-size:.9rem">Reinicia el contador de recibos para el año actual.</p>
                         <button id="config-reset-btn" class="action-btn" style="width:100%;border-color:#ff7b72;color:#ff7b72">Reset Contador (Año actual)</button>
                     </div>

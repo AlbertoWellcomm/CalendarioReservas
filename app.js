@@ -62,6 +62,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const configSaveBtn    = document.getElementById('config-save-btn');
     const configResetBtn   = document.getElementById('config-reset-btn');
     const configTaxRateInput = document.getElementById('config-tax-rate');
+    const configBackupBtn  = document.getElementById('config-backup-btn');
+    const configRestoreBtn = document.getElementById('config-restore-btn');
+    const configRestoreFile= document.getElementById('config-restore-file');
 
     // Reports
     const reportsBtn       = document.getElementById('reports-btn');
@@ -923,6 +926,75 @@ document.addEventListener('DOMContentLoaded', () => {
             configModal?.classList.add('hidden');
         }
     });
+
+    if (configBackupBtn) {
+        configBackupBtn.addEventListener('click', async () => {
+            try {
+                if (typeof db === 'undefined') throw new Error("Base de datos no inicializada");
+                const snapshot = await db.collection('bookings').get();
+                const bookings = [];
+                snapshot.forEach(doc => bookings.push({ id: doc.id, ...doc.data() }));
+                
+                const dataStr = JSON.stringify({ type: 'cr_backup', timestamp: new Date().toISOString(), bookings }, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const a = Object.assign(document.createElement('a'), {
+                    href: URL.createObjectURL(blob),
+                    download: `cr_reservas_${new Date().toISOString().slice(0,10)}.json`
+                });
+                a.click();
+                URL.revokeObjectURL(a.href);
+            } catch (e) {
+                alert('Error al exportar: ' + e.message);
+            }
+        });
+    }
+
+    if (configRestoreBtn && configRestoreFile) {
+        configRestoreBtn.addEventListener('click', () => configRestoreFile.click());
+        configRestoreFile.addEventListener('change', e => {
+            if (!e.target.files.length) return;
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = async ev => {
+                try {
+                    const data = JSON.parse(ev.target.result);
+                    if (data.type !== 'cr_backup' || !Array.isArray(data.bookings)) {
+                        alert('El archivo no es una copia de seguridad válida.');
+                        return;
+                    }
+                    if (!confirm(`¿Restaurar ${data.bookings.length} reservas?\nAtención: Las reservas existentes NO se borrarán. Las que coincidan en ID se sobrescribirán y el resto se añadirán.`)) return;
+
+                    if (typeof db === 'undefined') throw new Error("Base de datos no inicializada");
+                    
+                    const batch = db.batch();
+                    let count = 0;
+                    data.bookings.forEach(b => {
+                        const id = b.id;
+                        delete b.id; // Remover el ID interno antes de guardar
+                        
+                        // Si existen timestamps serializados como {seconds, nanoseconds}, convertirlos
+                        if (b.createdAt && b.createdAt.seconds) {
+                            b.createdAt = new firebase.firestore.Timestamp(b.createdAt.seconds, b.createdAt.nanoseconds);
+                        }
+                        if (b.updatedAt && b.updatedAt.seconds) {
+                            b.updatedAt = new firebase.firestore.Timestamp(b.updatedAt.seconds, b.updatedAt.nanoseconds);
+                        }
+                        
+                        const docRef = db.collection('bookings').doc(id);
+                        batch.set(docRef, b, { merge: true });
+                        count++;
+                    });
+                    await batch.commit();
+                    alert(`¡Se restauraron ${count} reservas correctamente!`);
+                    configModal?.classList.add('hidden');
+                } catch(err) {
+                    alert('Error al restaurar: ' + err.message);
+                }
+                e.target.value = '';
+            };
+            reader.readAsText(file);
+        });
+    }
     if (configModal) configModal.addEventListener('click', e => { if (e.target === configModal) configModal.classList.add('hidden'); });
 
     // ── Utilities ─────────────────────────────────────────────────────────────

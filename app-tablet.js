@@ -773,6 +773,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // TOURISTIC TAX RECEIPT LOGIC
     // ============================
     let RATE_PER_PERSON_NIGHT = 1.75; // Sync'ed from Firestore in initFirebaseSync
+    let currentReceiptDbId = null;
     const MAX_NIGHTS = 7;
 
     const receiptModal = document.getElementById('receipt-modal');
@@ -900,11 +901,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Open the receipt modal and fill in the data
-    async function openReceipt(aptName, paxCount, startISO, salidaISO) {
+    async function openReceipt(aptName, paxCount, startISO, salidaISO, existingData = null, dbId = null) {
         receiptActiveData = { apt: aptName, startISO, salidaISO };
-        const pax = parseInt(paxCount, 10) || 0;
-        currentNights = calcNights(startISO, salidaISO);
-        const receiptId = await getNextReceiptId();
+        const pax = existingData ? existingData.pax : (parseInt(paxCount, 10) || 0);
+        currentNights = existingData ? existingData.nights : calcNights(startISO, salidaISO);
+        currentReceiptDbId = dbId;
+        const receiptId = existingData ? existingData.id : await getNextReceiptId();
         const t = receiptI18n[currentReceiptLang];
 
         document.getElementById('r-id').textContent       = receiptId;
@@ -945,12 +947,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Wire up print receipt button in tooltip
     if (ttPrintReceipt) {
-        ttPrintReceipt.addEventListener('click', () => {
+        ttPrintReceipt.addEventListener('click', async () => {
             // Close tooltip
             tooltip.classList.remove('show');
             tooltip.classList.add('hidden');
             isOverTooltip = false;
-            openReceipt(receiptData.apt, receiptData.pax, receiptData.startISO, receiptData.salidaISO);
+            try {
+                const existing = await db.collection('receipts').where('apt', '==', receiptData.apt).where('checkin', '==', receiptData.startISO).limit(1).get();
+                if (!existing.empty) {
+                    const doc = existing.docs[0];
+                    openReceipt(doc.data().apt, doc.data().pax, doc.data().checkin, receiptData.salidaISO, doc.data(), doc.id);
+                } else {
+                    openReceipt(receiptData.apt, receiptData.pax, receiptData.startISO, receiptData.salidaISO);
+                }
+            } catch (e) {
+                openReceipt(receiptData.apt, receiptData.pax, receiptData.startISO, receiptData.salidaISO);
+            }
         });
     }
 
@@ -974,15 +986,24 @@ document.addEventListener('DOMContentLoaded', () => {
             
             try {
                 // Save to Firestore 'receipts' collection
-                await db.collection('receipts').add({
-                    id: id,
-                    apt: receiptActiveData.apt || '-',
-                    checkin: receiptActiveData.startISO,
-                    pax: pax,
-                    nights: nights,
-                    total: total,
-                    dateEmitted: new Date().toISOString()
-                });
+                if (currentReceiptDbId) {
+                    await db.collection('receipts').doc(currentReceiptDbId).update({
+                        pax: pax,
+                        nights: nights,
+                        total: total
+                    });
+                } else {
+                    const docRef = await db.collection('receipts').add({
+                        id: id,
+                        apt: receiptActiveData.apt || '-',
+                        checkin: receiptActiveData.startISO,
+                        pax: pax,
+                        nights: nights,
+                        total: total,
+                        dateEmitted: new Date().toISOString()
+                    });
+                    currentReceiptDbId = docRef.id;
+                }
                 window.print();
             } catch (e) {
                 alert('Error al guardar recibo en la base de datos: ' + e.message);
@@ -1000,6 +1021,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const registryTbody = document.getElementById('registry-table-body');
     
     let currentFilteredReceipts = [];
+
+    window.reprintReceipt = async function(docId) {
+        try {
+            const doc = await db.collection('receipts').doc(docId).get();
+            if (doc.exists) {
+                const data = doc.data();
+                
+                // Try to find the checkout date by matching with dayEvents if possible
+                let salidaISO = data.checkin;
+                const allEvents = typeof dayEvents !== 'undefined' ? dayEvents : [];
+                const checkinDateStr = data.checkin ? new Date(data.checkin).toISOString().split('T')[0] : '';
+                const match = allEvents.find(ev => (ev.apt || '').toLowerCase() === (data.apt || '').toLowerCase() && ev.start === checkinDateStr);
+                if (match && match.end) {
+                    salidaISO = match.end;
+                }
+                
+                openReceipt(data.apt, data.pax, data.checkin, salidaISO, data, docId);
+            }
+        } catch (e) {
+            alert('Error al obtener el recibo: ' + e.message);
+        }
+    };
 
     window.deleteReceipt = async function(docId) {
         if (confirm('¿Estás seguro de que quieres eliminar este recibo?')) {
@@ -1051,6 +1094,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td style="padding:10px; border-bottom:1px solid #e0e0e0;">${r.nights}</td>
                     <td style="padding:10px; border-bottom:1px solid #e0e0e0; font-weight:600;">${r.total.toLocaleString('es-ES', {style:'currency', currency:'EUR'})}</td>
                     <td style="padding:10px; border-bottom:1px solid #e0e0e0; text-align:center;">
+                        <button onclick="reprintReceipt('${doc.id}')" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:#007bff;margin-right:8px;" title="Reimprimir recibo">🖨️</button>
                         <button onclick="deleteReceipt('${doc.id}')" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:#d92d20;" title="Eliminar recibo">🗑️</button>
                     </td>
                 `;

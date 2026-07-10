@@ -135,6 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentReceiptLang     = 'es';
     let receiptActiveData      = { apt:'', startISO:'', salidaISO:'' };
     let currentFilteredReceipts= [];
+    let currentReceiptDbId     = null;
     let allBookings            = []; // Store all bookings for reporting
 
     // ── Firebase helpers ──────────────────────────────────────────────────────
@@ -755,12 +756,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return Math.min(raw, MAX_NIGHTS);
     }
 
-    async function openReceipt(aptName, paxCount, startISO, salidaISO) {
+    async function openReceipt(aptName, paxCount, startISO, salidaISO, existingData = null, dbId = null) {
         receiptActiveData = { apt:aptName, startISO, salidaISO };
-        const pax = parseInt(paxCount, 10) || 0;
-        currentNights = calcNightsR(startISO, salidaISO);
+        const pax = existingData ? existingData.pax : (parseInt(paxCount, 10) || 0);
+        currentNights = existingData ? existingData.nights : calcNightsR(startISO, salidaISO);
+        currentReceiptDbId = dbId;
         const t  = receiptI18n[currentReceiptLang];
-        const id = await getNextReceiptId();
+        const id = existingData ? existingData.id : await getNextReceiptId();
         document.getElementById('r-id').textContent       = id;
         document.getElementById('r-apt').textContent      = aptName || '-';
         document.getElementById('r-checkin').textContent  = formatReceiptDate(startISO);
@@ -780,9 +782,19 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('receipt-lang-select')?.addEventListener('change', e => { currentReceiptLang = e.target.value; applyReceiptTranslations(); });
 
     if (ttPrintReceipt) {
-        ttPrintReceipt.addEventListener('click', () => {
+        ttPrintReceipt.addEventListener('click', async () => {
             hideTooltip();
-            openReceipt(receiptData.apt, receiptData.pax, receiptData.startISO, receiptData.salidaISO);
+            try {
+                const existing = await db.collection('receipts').where('apt', '==', receiptData.apt).where('checkin', '==', receiptData.startISO).limit(1).get();
+                if (!existing.empty) {
+                    const doc = existing.docs[0];
+                    openReceipt(doc.data().apt, doc.data().pax, doc.data().checkin, receiptData.salidaISO, doc.data(), doc.id);
+                } else {
+                    openReceipt(receiptData.apt, receiptData.pax, receiptData.startISO, receiptData.salidaISO);
+                }
+            } catch (e) {
+                openReceipt(receiptData.apt, receiptData.pax, receiptData.startISO, receiptData.salidaISO);
+            }
         });
     }
     if (receiptCloseBtn) receiptCloseBtn.addEventListener('click', () => receiptModal.classList.add('hidden'));
@@ -797,15 +809,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Save to Firestore instead of localStorage
             try {
-                await db.collection('receipts').add({
-                    id: id,
-                    apt: receiptActiveData.apt || '-',
-                    checkin: receiptActiveData.startISO,
-                    pax: pax,
-                    nights: nights,
-                    total: total,
-                    dateEmitted: new Date().toISOString()
-                });
+                if (currentReceiptDbId) {
+                    await db.collection('receipts').doc(currentReceiptDbId).update({
+                        pax: pax,
+                        nights: nights,
+                        total: total
+                    });
+                } else {
+                    const docRef = await db.collection('receipts').add({
+                        id: id,
+                        apt: receiptActiveData.apt || '-',
+                        checkin: receiptActiveData.startISO,
+                        pax: pax,
+                        nights: nights,
+                        total: total,
+                        dateEmitted: new Date().toISOString()
+                    });
+                    currentReceiptDbId = docRef.id;
+                }
                 window.print();
             } catch (e) {
                 alert('Error al guardar recibo: ' + e.message);
@@ -813,6 +834,29 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+
+    window.reprintReceipt = async function(docId) {
+        try {
+            const doc = await db.collection('receipts').doc(docId).get();
+            if (doc.exists) {
+                const data = doc.data();
+                const allEvents = typeof calendar !== 'undefined' && calendar ? calendar.getEvents() : [];
+                const checkinDateStr = data.checkin ? formatDateISO(new Date(data.checkin)) : '';
+                const match = allEvents.find(ev => (ev.extendedProps.apt || '').toLowerCase() === (data.apt || '').toLowerCase() && (ev.startStr === checkinDateStr || (ev.start && formatDateISO(ev.start) === checkinDateStr)));
+                
+                let salidaISO = data.checkin;
+                if (match && match.end) {
+                    salidaISO = formatDateISO(match.end);
+                } else if (match && match.endStr) {
+                    salidaISO = match.endStr;
+                }
+                
+                openReceipt(data.apt, data.pax, data.checkin, salidaISO, data, docId);
+            }
+        } catch (e) {
+            alert('Error al obtener el recibo: ' + e.message);
+        }
+    };
 
     window.deleteReceipt = async function(docId) {
         if (confirm('¿Estás seguro de que quieres eliminar este recibo?')) {
@@ -869,6 +913,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td style="padding:12px 10px; text-align:right; font-weight:600;">${formatCurrency(r.total)}</td>
                     <td style="padding:12px 10px; text-align:center; font-size:1.1rem;" title="${match ? (match.extendedProps.tasaPagada ? 'Pagada' : 'Pendiente') : 'Reserva no encontrada'}">${isPaid}</td>
                     <td style="padding:12px 10px; text-align:center;">
+                        <button onclick="reprintReceipt('${doc.id}')" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:#007bff;margin-right:8px;" title="Reimprimir recibo">🖨️</button>
                         <button onclick="deleteReceipt('${doc.id}')" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:#d92d20;" title="Eliminar recibo">🗑️</button>
                     </td>
                 `;

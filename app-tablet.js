@@ -1028,13 +1028,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (doc.exists) {
                 const data = doc.data();
                 
-                // Try to find the checkout date by matching with dayEvents if possible
-                let salidaISO = data.checkin;
-                const allEvents = typeof dayEvents !== 'undefined' ? dayEvents : [];
                 const checkinDateStr = data.checkin ? data.checkin.split('T')[0] : '';
-                const match = allEvents.find(ev => (ev.apt || '').toLowerCase() === (data.apt || '').toLowerCase() && ev.start === checkinDateStr);
-                if (match && match.end) {
-                    salidaISO = match.end;
+                const match = allBookings.find(b => (b.apt || '').toLowerCase() === (data.apt || '').toLowerCase() && b.entrada === checkinDateStr);
+                
+                let salidaISO = data.checkin;
+                if (match && match.salida) {
+                    salidaISO = match.salida;
                 }
                 
                 openReceipt(data.apt, data.pax, data.checkin, salidaISO, data, docId);
@@ -1085,10 +1084,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     else { p2Total += r.total; p2Count++; }
                 }
 
-                const allEvents = typeof dayEvents !== 'undefined' ? dayEvents : [];
                 const checkinDateStr = r.checkin ? r.checkin.split('T')[0] : '';
-                const match = allEvents.find(ev => (ev.apt || '').toLowerCase() === (r.apt || '').toLowerCase() && ev.start === checkinDateStr);
-                const isPaid = match ? (match.tasaPagada ? '✅' : '❌') : '❔';
+                const match = allBookings.find(b => (b.apt || '').toLowerCase() === (r.apt || '').toLowerCase() && b.entrada === checkinDateStr);
+                const isPaid = match ? (match.tasaPagada ? '\\u2705' : '\\u274C') : '\\u2754';
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
@@ -1100,8 +1098,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td style="padding:10px; border-bottom:1px solid #e0e0e0; font-weight:600;">${r.total.toLocaleString('es-ES', {style:'currency', currency:'EUR'})}</td>
                     <td style="padding:10px; border-bottom:1px solid #e0e0e0; text-align:center; font-size:1.1rem;" title="${match ? (match.tasaPagada ? 'Pagada' : 'Pendiente') : 'Reserva no encontrada'}">${isPaid}</td>
                     <td style="padding:10px; border-bottom:1px solid #e0e0e0; text-align:center;">
-                        <button onclick="reprintReceipt('${doc.id}')" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:#007bff;margin-right:8px;" title="Reimprimir recibo">🖨️</button>
-                        <button onclick="deleteReceipt('${doc.id}')" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:#d92d20;" title="Eliminar recibo">🗑️</button>
+                        <button onclick="reprintReceipt('${doc.id}')" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:#007bff;margin-right:8px;" title="Reimprimir recibo">\\uD83D\\uDDA8\\uFE0F</button>
+                        <button onclick="deleteReceipt('${doc.id}')" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:#d92d20;" title="Eliminar recibo">\\uD83D\\uDDD1\\uFE0F</button>
                     </td>
                 `;
                 registryTbody.appendChild(tr);

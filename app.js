@@ -840,15 +840,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const doc = await db.collection('receipts').doc(docId).get();
             if (doc.exists) {
                 const data = doc.data();
-                const allEvents = typeof calendar !== 'undefined' && calendar ? calendar.getEvents() : [];
                 const checkinDateStr = data.checkin ? data.checkin.split('T')[0] : '';
-                const match = allEvents.find(ev => (ev.extendedProps.apt || '').toLowerCase() === (data.apt || '').toLowerCase() && (ev.startStr === checkinDateStr || (ev.start && formatDateISO(ev.start) === checkinDateStr)));
+                const match = allBookings.find(b => (b.apt || '').toLowerCase() === (data.apt || '').toLowerCase() && (b.entrada === checkinDateStr));
                 
                 let salidaISO = data.checkin;
-                if (match && match.end) {
-                    salidaISO = formatDateISO(match.end);
-                } else if (match && match.endStr) {
-                    salidaISO = match.endStr;
+                if (match && match.salida) {
+                    salidaISO = match.salida;
                 }
                 
                 openReceipt(data.apt, data.pax, data.checkin, salidaISO, data, docId);
@@ -897,10 +894,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (m >= 3 && m <= 9) { p1T += r.total; p1C++; } else { p2T += r.total; p2C++; }
                 }
 
-                const allEvents = typeof calendar !== 'undefined' && calendar ? calendar.getEvents() : [];
                 const checkinDateStr = r.checkin ? r.checkin.split('T')[0] : '';
-                const match = allEvents.find(ev => (ev.extendedProps.apt || '').toLowerCase() === (r.apt || '').toLowerCase() && (ev.startStr === checkinDateStr || (ev.start && formatDateISO(ev.start) === checkinDateStr)));
-                const isPaid = match ? (match.extendedProps.tasaPagada ? '✅' : '❌') : '❔';
+                const match = allBookings.find(b => (b.apt || '').toLowerCase() === (r.apt || '').toLowerCase() && (b.entrada === checkinDateStr));
+                const isPaid = match ? (match.tasaPagada ? '\u2705' : '\u274C') : '\u2754';
 
                 const tr = document.createElement('tr');
                 tr.style.borderBottom = '1px solid #f2f4f7';
@@ -911,10 +907,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td style="padding:12px 10px; text-align:center;">${r.pax}</td>
                     <td style="padding:12px 10px; text-align:center;">${r.nights}</td>
                     <td style="padding:12px 10px; text-align:right; font-weight:600;">${formatCurrency(r.total)}</td>
-                    <td style="padding:12px 10px; text-align:center; font-size:1.1rem;" title="${match ? (match.extendedProps.tasaPagada ? 'Pagada' : 'Pendiente') : 'Reserva no encontrada'}">${isPaid}</td>
+                    <td style="padding:12px 10px; text-align:center; font-size:1.1rem;" title="${match ? (match.tasaPagada ? 'Pagada' : 'Pendiente') : 'Reserva no encontrada'}">${isPaid}</td>
                     <td style="padding:12px 10px; text-align:center;">
-                        <button onclick="reprintReceipt('${doc.id}')" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:#007bff;margin-right:8px;" title="Reimprimir recibo">🖨️</button>
-                        <button onclick="deleteReceipt('${doc.id}')" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:#d92d20;" title="Eliminar recibo">🗑️</button>
+                        <button onclick="reprintReceipt('${doc.id}')" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:#007bff;margin-right:8px;" title="Reimprimir recibo">\uD83D\uDDA8\uFE0F</button>
+                        <button onclick="deleteReceipt('${doc.id}')" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:#d92d20;" title="Eliminar recibo">\uD83D\uDDD1\uFE0F</button>
                     </td>
                 `;
                 registryTbody.appendChild(tr);
@@ -942,8 +938,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const allEvents = typeof calendar !== 'undefined' && calendar ? calendar.getEvents() : [];
             currentFilteredReceipts.forEach(r => {
                 const checkinDateStr = r.checkin ? r.checkin.split('T')[0] : '';
-                const match = allEvents.find(ev => (ev.extendedProps.apt || '').toLowerCase() === (r.apt || '').toLowerCase() && (ev.startStr === checkinDateStr || (ev.start && formatDateISO(ev.start) === checkinDateStr)));
-                const isPaid = match ? (match.extendedProps.tasaPagada ? 'Si' : 'No') : 'Desconocido';
+                const match = allBookings.find(b => (b.apt || '').toLowerCase() === (r.apt || '').toLowerCase() && (b.entrada === checkinDateStr));
+                const isPaid = match ? (match.tasaPagada ? 'Si' : 'No') : 'Desconocido';
                 csv += `"${r.id}","${formatReceiptDate(r.checkin)}","${r.apt}","${r.pax}","${r.nights}","${r.total.toFixed(2)}","${isPaid}","${new Date(r.dateEmitted).toLocaleString('es-ES')}"\n`;
             });
             const a = Object.assign(document.createElement('a'), {

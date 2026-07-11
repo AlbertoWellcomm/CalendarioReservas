@@ -1028,8 +1028,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (doc.exists) {
                 const data = doc.data();
                 
-                const checkinDateStr = data.checkin ? data.checkin.split('T')[0] : '';
-                const match = allBookings.find(b => (b.apt || '').toLowerCase() === (data.apt || '').toLowerCase() && b.entrada === checkinDateStr);
+                const checkinDateStr = data.checkin ? formatDateISO(new Date(data.checkin)) : '';
+                const match = allBookings.find(b => {
+                    const bEntradaStr = b.entrada ? formatDateISO(new Date(b.entrada)) : '';
+                    return (b.apt || '').toLowerCase() === (data.apt || '').toLowerCase() && bEntradaStr === checkinDateStr;
+                });
                 
                 let salidaISO = data.checkin;
                 if (match && match.salida) {
@@ -1084,9 +1087,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     else { p2Total += r.total; p2Count++; }
                 }
 
-                const checkinDateStr = r.checkin ? r.checkin.split('T')[0] : '';
-                const match = allBookings.find(b => (b.apt || '').toLowerCase() === (r.apt || '').toLowerCase() && b.entrada === checkinDateStr);
-                const isPaid = match ? (match.tasaPagada ? '\\u2705' : '\\u274C') : '\\u2754';
+                const checkinDateStr = r.checkin ? formatDateISO(new Date(r.checkin)) : '';
+                const match = allBookings.find(b => {
+                    const bEntradaStr = b.entrada ? formatDateISO(new Date(b.entrada)) : '';
+                    return (b.apt || '').toLowerCase() === (r.apt || '').toLowerCase() && bEntradaStr === checkinDateStr;
+                });
+                const isPaid = match ? (match.tasaPagada ? '✅' : '❌') : '❔';
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
@@ -1098,8 +1104,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td style="padding:10px; border-bottom:1px solid #e0e0e0; font-weight:600;">${r.total.toLocaleString('es-ES', {style:'currency', currency:'EUR'})}</td>
                     <td style="padding:10px; border-bottom:1px solid #e0e0e0; text-align:center; font-size:1.1rem;" title="${match ? (match.tasaPagada ? 'Pagada' : 'Pendiente') : 'Reserva no encontrada'}">${isPaid}</td>
                     <td style="padding:10px; border-bottom:1px solid #e0e0e0; text-align:center;">
-                        <button onclick="reprintReceipt('${doc.id}')" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:#007bff;margin-right:8px;" title="Reimprimir recibo">\\uD83D\\uDDA8\\uFE0F</button>
-                        <button onclick="deleteReceipt('${doc.id}')" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:#d92d20;" title="Eliminar recibo">\\uD83D\\uDDD1\\uFE0F</button>
+                        <button onclick="reprintReceipt('${doc.id}')" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:#007bff;margin-right:8px;" title="Reimprimir recibo">🖨️</button>
+                        <button onclick="deleteReceipt('${doc.id}')" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:#d92d20;" title="Eliminar recibo">🗑️</button>
                     </td>
                 `;
                 registryTbody.appendChild(tr);

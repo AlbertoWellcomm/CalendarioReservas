@@ -840,8 +840,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const doc = await db.collection('receipts').doc(docId).get();
             if (doc.exists) {
                 const data = doc.data();
-                const checkinDateStr = data.checkin ? data.checkin.split('T')[0] : '';
-                const match = allBookings.find(b => (b.apt || '').toLowerCase() === (data.apt || '').toLowerCase() && (b.entrada === checkinDateStr));
+                const checkinDateStr = data.checkin ? formatDateISO(new Date(data.checkin)) : '';
+                const match = allBookings.find(b => {
+                    const bEntradaStr = b.entrada ? formatDateISO(new Date(b.entrada)) : '';
+                    return (b.apt || '').toLowerCase() === (data.apt || '').toLowerCase() && bEntradaStr === checkinDateStr;
+                });
                 
                 let salidaISO = data.checkin;
                 if (match && match.salida) {
@@ -894,9 +897,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (m >= 3 && m <= 9) { p1T += r.total; p1C++; } else { p2T += r.total; p2C++; }
                 }
 
-                const checkinDateStr = r.checkin ? r.checkin.split('T')[0] : '';
-                const match = allBookings.find(b => (b.apt || '').toLowerCase() === (r.apt || '').toLowerCase() && (b.entrada === checkinDateStr));
-                const isPaid = match ? (match.tasaPagada ? '\u2705' : '\u274C') : '\u2754';
+                const checkinDateStr = r.checkin ? formatDateISO(new Date(r.checkin)) : '';
+                const match = allBookings.find(b => {
+                    const bEntradaStr = b.entrada ? formatDateISO(new Date(b.entrada)) : '';
+                    return (b.apt || '').toLowerCase() === (r.apt || '').toLowerCase() && bEntradaStr === checkinDateStr;
+                });
+                const isPaid = match ? (match.tasaPagada ? '✅' : '❌') : '❔';
 
                 const tr = document.createElement('tr');
                 tr.style.borderBottom = '1px solid #f2f4f7';
@@ -937,8 +943,11 @@ document.addEventListener('DOMContentLoaded', () => {
             let csv = 'ID,Fecha Check-in,Alojamiento,Pax,Noches,Total(EUR),Pagada,Fecha Emision\n';
             const allEvents = typeof calendar !== 'undefined' && calendar ? calendar.getEvents() : [];
             currentFilteredReceipts.forEach(r => {
-                const checkinDateStr = r.checkin ? r.checkin.split('T')[0] : '';
-                const match = allBookings.find(b => (b.apt || '').toLowerCase() === (r.apt || '').toLowerCase() && (b.entrada === checkinDateStr));
+                const checkinDateStr = r.checkin ? formatDateISO(new Date(r.checkin)) : '';
+                const match = allBookings.find(b => {
+                    const bEntradaStr = b.entrada ? formatDateISO(new Date(b.entrada)) : '';
+                    return (b.apt || '').toLowerCase() === (r.apt || '').toLowerCase() && bEntradaStr === checkinDateStr;
+                });
                 const isPaid = match ? (match.tasaPagada ? 'Si' : 'No') : 'Desconocido';
                 csv += `"${r.id}","${formatReceiptDate(r.checkin)}","${r.apt}","${r.pax}","${r.nights}","${r.total.toFixed(2)}","${isPaid}","${new Date(r.dateEmitted).toLocaleString('es-ES')}"\n`;
             });

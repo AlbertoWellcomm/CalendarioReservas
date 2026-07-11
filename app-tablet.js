@@ -51,7 +51,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const configAdminEmailInput = document.getElementById('config-admin-email');
     const configMinAgeInput = document.getElementById('config-min-age');
     const configWeb3formsKeyInput = document.getElementById('config-web3forms-key');
-    const configMossosCodeInput = document.getElementById('config-mossos-code');
+    const configMossosLoftInput = document.getElementById('config-mossos-loft');
+    const configMossos1stFloorInput = document.getElementById('config-mossos-1stfloor');
     const ttCheckinStatus = document.getElementById('tt-checkin-status');
     const ttCopyCheckin   = document.getElementById('tt-copy-checkin');
     const ttViewCheckin   = document.getElementById('tt-view-checkin');
@@ -336,8 +337,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (data.web3forms_key !== undefined && configWeb3formsKeyInput) {
                             configWeb3formsKeyInput.value = data.web3forms_key || '';
                         }
-                        if (data.mossos_code !== undefined && configMossosCodeInput) {
-                            configMossosCodeInput.value = data.mossos_code || '';
+                        if (data.mossos_loft !== undefined && configMossosLoftInput) {
+                            configMossosLoftInput.value = data.mossos_loft || '';
+                        }
+                        if (data.mossos_1stfloor !== undefined && configMossos1stFloorInput) {
+                            configMossos1stFloorInput.value = data.mossos_1stfloor || '';
                         }
                     }
                 });
@@ -1175,7 +1179,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (configAdminEmailInput) configAdminEmailInput.value = config.admin_email || '';
                 if (configMinAgeInput) configMinAgeInput.value = config.min_checkin_age !== undefined ? config.min_checkin_age : 14;
                 if (configWeb3formsKeyInput) configWeb3formsKeyInput.value = config.web3forms_key || '';
-                if (configMossosCodeInput) configMossosCodeInput.value = config.mossos_code || '';
+                if (configMossosLoftInput) configMossosLoftInput.value = config.mossos_loft || '';
+                if (configMossos1stFloorInput) configMossos1stFloorInput.value = config.mossos_1stfloor || '';
             } catch(e) {
                 console.error('Error fetching global config on tablet:', e);
             }
@@ -1194,7 +1199,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const newRate = parseFloat(configTaxRateInput.value) || 1.75;
             const newEmail = configAdminEmailInput ? configAdminEmailInput.value.trim() : '';
             const newKey = configWeb3formsKeyInput ? configWeb3formsKeyInput.value.trim() : '';
-            const newMossos = configMossosCodeInput ? configMossosCodeInput.value.trim() : '';
+            const newMossosLoft = configMossosLoftInput ? configMossosLoftInput.value.trim() : '';
+            const newMossos1stFloor = configMossos1stFloorInput ? configMossos1stFloorInput.value.trim() : '';
             const newMinAge = configMinAgeInput ? parseInt(configMinAgeInput.value, 10) : 14;
             
             try {
@@ -1202,7 +1208,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     tax_rate: newRate,
                     admin_email: newEmail,
                     web3forms_key: newKey,
-                    mossos_code: newMossos,
+                    mossos_loft: newMossosLoft,
+                    mossos_1stfloor: newMossos1stFloor,
                     min_checkin_age: isNaN(newMinAge) ? 14 : newMinAge
                 });
             } catch(e) {
@@ -1611,11 +1618,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (checkinMossosBtn) {
         checkinMossosBtn.addEventListener('click', async () => {
             if (!currentBookingId) return;
-            const mossosCode = configMossosCodeInput && configMossosCodeInput.value ? configMossosCodeInput.value.trim() : '';
-            if (!mossosCode) {
-                alert('Falta el Código de Alojamiento. Por favor, configúralo en la sección de Configuración antes de exportar.');
-                return;
-            }
 
             try {
                 const doc = await db.collection('checkins').doc(currentBookingId).get();
@@ -1624,6 +1626,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
                 const data = doc.data();
+                const apt = data.apt || '';
+                
+                let mossosCode = '';
+                if (apt === 'loft') {
+                    mossosCode = configMossosLoftInput && configMossosLoftInput.value ? configMossosLoftInput.value.trim() : '';
+                } else if (apt === '1st_floor') {
+                    mossosCode = configMossos1stFloorInput && configMossos1stFloorInput.value ? configMossos1stFloorInput.value.trim() : '';
+                } else {
+                    alert('No se pudo determinar el apartamento para esta reserva.');
+                    return;
+                }
+                
+                if (!mossosCode) {
+                    alert('Falta el Código de Alojamiento para este apartamento (' + apt + '). Por favor, configúralo en la sección de Configuración antes de exportar.');
+                    return;
+                }
                 
                 let guestsArray = [];
                 if (data.guests && Array.isArray(data.guests)) {

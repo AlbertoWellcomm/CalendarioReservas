@@ -864,3 +864,24 @@ body {
         width: 100%;
     }
 }
+
+/* ============================
+   CALENDAR HEADER & SUNDAY STYLES
+   ============================ */
+/* Hacer sticky la cabecera de los días de la semana en el calendario */
+.fc .fc-scrollgrid-section-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+.fc .fc-scrollgrid-section-header > th {
+    background: var(--b-dark);
+}
+
+/* Marcar los domingos con un color de fondo sutil como referencia */
+.fc-day-sun {
+    background-color: rgba(255, 123, 114, 0.04) !important;
+}
+.fc-col-header-cell.fc-day-sun {
+    background-color: rgba(255, 123, 114, 0.1) !important;
+}

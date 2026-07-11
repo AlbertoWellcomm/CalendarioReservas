@@ -143,7 +143,7 @@ body {
     --fc-button-border-color: var(--border-color);
     --fc-button-hover-bg-color: #21262d;
     --fc-button-active-bg-color: var(--accent);
-    --fc-today-bg-color: rgba(88, 166, 255, 0.1);
+    --fc-today-bg-color: rgba(88, 166, 255, 0.3);
 }
 
 .fc .fc-toolbar-title {

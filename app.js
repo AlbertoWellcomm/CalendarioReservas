@@ -841,7 +841,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (doc.exists) {
                 const data = doc.data();
                 const allEvents = typeof calendar !== 'undefined' && calendar ? calendar.getEvents() : [];
-                const checkinDateStr = data.checkin ? formatDateISO(new Date(data.checkin)) : '';
+                const checkinDateStr = data.checkin ? data.checkin.split('T')[0] : '';
                 const match = allEvents.find(ev => (ev.extendedProps.apt || '').toLowerCase() === (data.apt || '').toLowerCase() && (ev.startStr === checkinDateStr || (ev.start && formatDateISO(ev.start) === checkinDateStr)));
                 
                 let salidaISO = data.checkin;
@@ -898,7 +898,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 const allEvents = typeof calendar !== 'undefined' && calendar ? calendar.getEvents() : [];
-                const checkinDateStr = r.checkin ? formatDateISO(new Date(r.checkin)) : '';
+                const checkinDateStr = r.checkin ? r.checkin.split('T')[0] : '';
                 const match = allEvents.find(ev => (ev.extendedProps.apt || '').toLowerCase() === (r.apt || '').toLowerCase() && (ev.startStr === checkinDateStr || (ev.start && formatDateISO(ev.start) === checkinDateStr)));
                 const isPaid = match ? (match.extendedProps.tasaPagada ? '✅' : '❌') : '❔';
 
@@ -941,7 +941,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let csv = 'ID,Fecha Check-in,Alojamiento,Pax,Noches,Total(EUR),Pagada,Fecha Emision\n';
             const allEvents = typeof calendar !== 'undefined' && calendar ? calendar.getEvents() : [];
             currentFilteredReceipts.forEach(r => {
-                const checkinDateStr = r.checkin ? formatDateISO(new Date(r.checkin)) : '';
+                const checkinDateStr = r.checkin ? r.checkin.split('T')[0] : '';
                 const match = allEvents.find(ev => (ev.extendedProps.apt || '').toLowerCase() === (r.apt || '').toLowerCase() && (ev.startStr === checkinDateStr || (ev.start && formatDateISO(ev.start) === checkinDateStr)));
                 const isPaid = match ? (match.extendedProps.tasaPagada ? 'Si' : 'No') : 'Desconocido';
                 csv += `"${r.id}","${formatReceiptDate(r.checkin)}","${r.apt}","${r.pax}","${r.nights}","${r.total.toFixed(2)}","${isPaid}","${new Date(r.dateEmitted).toLocaleString('es-ES')}"\n`;

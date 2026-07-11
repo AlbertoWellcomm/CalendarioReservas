@@ -1031,7 +1031,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Try to find the checkout date by matching with dayEvents if possible
                 let salidaISO = data.checkin;
                 const allEvents = typeof dayEvents !== 'undefined' ? dayEvents : [];
-                const checkinDateStr = data.checkin ? new Date(data.checkin).toISOString().split('T')[0] : '';
+                const checkinDateStr = data.checkin ? data.checkin.split('T')[0] : '';
                 const match = allEvents.find(ev => (ev.apt || '').toLowerCase() === (data.apt || '').toLowerCase() && ev.start === checkinDateStr);
                 if (match && match.end) {
                     salidaISO = match.end;
@@ -1085,6 +1085,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     else { p2Total += r.total; p2Count++; }
                 }
 
+                const allEvents = typeof dayEvents !== 'undefined' ? dayEvents : [];
+                const checkinDateStr = r.checkin ? r.checkin.split('T')[0] : '';
+                const match = allEvents.find(ev => (ev.apt || '').toLowerCase() === (r.apt || '').toLowerCase() && ev.start === checkinDateStr);
+                const isPaid = match ? (match.tasaPagada ? '✅' : '❌') : '❔';
+
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td style="padding:10px; border-bottom:1px solid #e0e0e0;">${r.id}</td>
@@ -1093,6 +1098,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td style="padding:10px; border-bottom:1px solid #e0e0e0;">${r.pax}</td>
                     <td style="padding:10px; border-bottom:1px solid #e0e0e0;">${r.nights}</td>
                     <td style="padding:10px; border-bottom:1px solid #e0e0e0; font-weight:600;">${r.total.toLocaleString('es-ES', {style:'currency', currency:'EUR'})}</td>
+                    <td style="padding:10px; border-bottom:1px solid #e0e0e0; text-align:center; font-size:1.1rem;" title="${match ? (match.tasaPagada ? 'Pagada' : 'Pendiente') : 'Reserva no encontrada'}">${isPaid}</td>
                     <td style="padding:10px; border-bottom:1px solid #e0e0e0; text-align:center;">
                         <button onclick="reprintReceipt('${doc.id}')" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:#007bff;margin-right:8px;" title="Reimprimir recibo">🖨️</button>
                         <button onclick="deleteReceipt('${doc.id}')" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:#d92d20;" title="Eliminar recibo">🗑️</button>

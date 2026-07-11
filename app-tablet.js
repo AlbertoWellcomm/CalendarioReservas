@@ -1092,7 +1092,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const bEntradaStr = b.entrada ? formatDateISO(new Date(b.entrada)) : '';
                     return (b.apt || '').toLowerCase() === (r.apt || '').toLowerCase() && bEntradaStr === checkinDateStr;
                 });
-                const isPaid = match ? (match.tasaPagada ? '✅' : '❌') : '❔';
+                const isPaid = match ? (match.tasaPagada ? '\u2705' : '\u274C') : '\u2754';
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `

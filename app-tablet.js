@@ -51,12 +51,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const configAdminEmailInput = document.getElementById('config-admin-email');
     const configMinAgeInput = document.getElementById('config-min-age');
     const configWeb3formsKeyInput = document.getElementById('config-web3forms-key');
+    const configMossosCodeInput = document.getElementById('config-mossos-code');
     const ttCheckinStatus = document.getElementById('tt-checkin-status');
     const ttCopyCheckin   = document.getElementById('tt-copy-checkin');
     const ttViewCheckin   = document.getElementById('tt-view-checkin');
 
     const checkinViewModal = document.getElementById('checkin-view-modal');
     const checkinPrintBtn  = document.getElementById('checkin-print-btn');
+    const checkinMossosBtn = document.getElementById('checkin-mossos-btn');
     const checkinCloseBtn  = document.getElementById('checkin-close-btn');
     const checkinDeleteBtn = document.getElementById('checkin-delete-btn');
 
@@ -333,6 +335,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                         if (data.web3forms_key !== undefined && configWeb3formsKeyInput) {
                             configWeb3formsKeyInput.value = data.web3forms_key || '';
+                        }
+                        if (data.mossos_code !== undefined && configMossosCodeInput) {
+                            configMossosCodeInput.value = data.mossos_code || '';
                         }
                     }
                 });
@@ -1170,6 +1175,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (configAdminEmailInput) configAdminEmailInput.value = config.admin_email || '';
                 if (configMinAgeInput) configMinAgeInput.value = config.min_checkin_age !== undefined ? config.min_checkin_age : 14;
                 if (configWeb3formsKeyInput) configWeb3formsKeyInput.value = config.web3forms_key || '';
+                if (configMossosCodeInput) configMossosCodeInput.value = config.mossos_code || '';
             } catch(e) {
                 console.error('Error fetching global config on tablet:', e);
             }
@@ -1188,6 +1194,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const newRate = parseFloat(configTaxRateInput.value) || 1.75;
             const newEmail = configAdminEmailInput ? configAdminEmailInput.value.trim() : '';
             const newKey = configWeb3formsKeyInput ? configWeb3formsKeyInput.value.trim() : '';
+            const newMossos = configMossosCodeInput ? configMossosCodeInput.value.trim() : '';
             const newMinAge = configMinAgeInput ? parseInt(configMinAgeInput.value, 10) : 14;
             
             try {
@@ -1195,6 +1202,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     tax_rate: newRate,
                     admin_email: newEmail,
                     web3forms_key: newKey,
+                    mossos_code: newMossos,
                     min_checkin_age: isNaN(newMinAge) ? 14 : newMinAge
                 });
             } catch(e) {
@@ -1597,6 +1605,74 @@ document.addEventListener('DOMContentLoaded', () => {
     if (checkinPrintBtn) {
         checkinPrintBtn.addEventListener('click', () => {
             window.print();
+        });
+    }
+
+    if (checkinMossosBtn) {
+        checkinMossosBtn.addEventListener('click', async () => {
+            if (!currentBookingId) return;
+            const mossosCode = configMossosCodeInput && configMossosCodeInput.value ? configMossosCodeInput.value.trim() : '';
+            if (!mossosCode) {
+                alert('Falta el Código de Alojamiento. Por favor, configúralo en la sección de Configuración antes de exportar.');
+                return;
+            }
+
+            try {
+                const doc = await db.collection('checkins').doc(currentBookingId).get();
+                if (!doc.exists) {
+                    alert('No hay datos de check-in para esta reserva.');
+                    return;
+                }
+                const data = doc.data();
+                
+                let guestsArray = [];
+                if (data.guests && Array.isArray(data.guests)) {
+                    guestsArray = data.guests;
+                } else if (data.guest) {
+                    guestsArray = [data.guest];
+                }
+
+                if (guestsArray.length === 0) {
+                    alert('No hay huéspedes registrados en este check-in.');
+                    return;
+                }
+
+                let content = '';
+                const entradaStr = data.entrada ? data.entrada.split('-').join('') : '';
+                
+                guestsArray.forEach(g => {
+                    const full = (g.nombre || '').trim().split(' ').filter(x => x);
+                    const name = full.length > 0 ? full[0].toUpperCase() : '';
+                    const sur1 = full.length > 1 ? full[1].toUpperCase() : '';
+                    const sur2 = full.length > 2 ? full.slice(2).join(' ').toUpperCase() : '';
+                    
+                    const docType = (g.docTipo || '').substring(0, 1).toUpperCase();
+                    const docNum = (g.docNum || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+                    const docEmision = g.docEmision ? g.docEmision.split('-').join('') : '';
+                    
+                    let sexo = 'X';
+                    if (g.sexo) {
+                        const s = g.sexo.toUpperCase();
+                        if (s.startsWith('M') || s === 'H') sexo = 'M';
+                        if (s.startsWith('F')) sexo = 'F';
+                    }
+                    
+                    const nac = g.nacimiento ? g.nacimiento.split('-').join('') : '';
+                    
+                    const line = `${mossosCode}|${docType}|${docNum}|${docEmision}|${name}|${sur1}|${sur2}|${sexo}|${nac}||${entradaStr}`;
+                    content += line + '\n';
+                });
+
+                const blob = new Blob([content], { type: 'text/plain;charset=ISO-8859-1' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `${mossosCode}.txt`;
+                a.click();
+                URL.revokeObjectURL(a.href);
+
+            } catch(e) {
+                alert('Error al generar fichero Mossos: ' + e.message);
+            }
         });
     }
 

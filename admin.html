@@ -263,6 +263,10 @@
                         <label class="r-label" for="config-web3forms-key">Clave Web3Forms (Opcional):</label>
                         <input type="text" id="config-web3forms-key" class="local-note-input" placeholder="Clave de web3forms.com" style="min-height:auto">
                     </div>
+                    <div class="receipt-row" style="flex-direction:column;align-items:flex-start;gap:8px">
+                        <label class="r-label" for="config-mossos-code">Código Alojamiento Mossos (ej. 08043AAR02):</label>
+                        <input type="text" id="config-mossos-code" class="local-note-input" placeholder="Código de establecimiento" style="min-height:auto">
+                    </div>
                     <div class="receipt-divider"></div>
                     <div class="receipt-row" style="flex-direction:column;align-items:flex-start;gap:8px">
                         <p class="r-label" style="font-size:.9rem">Copias de Seguridad (Datos en la nube)</p>
@@ -430,6 +434,7 @@
             </div>
             
             <div class="receipt-actions no-print" style="background:#f7f8fa; border-top:1px solid #e0e0e0; padding:1rem 2.5rem; display:flex; gap:10px;">
+                <button id="checkin-mossos-btn" class="action-btn" style="flex:1.2; background:#047857; color:white; border:none; border-radius:7px; font-weight:600; cursor:pointer;">👮 Exportar Mossos (TXT)</button>
                 <button id="checkin-print-btn" class="action-btn" style="flex:1; background:#2563eb; color:white; border:none; border-radius:7px; font-weight:600; cursor:pointer;">🖨️ Imprimir Ficha</button>
                 <button id="checkin-delete-btn" class="action-btn" style="flex:1; background:#ef4444; color:white; border:none; border-radius:7px; font-weight:600; cursor:pointer;">🗑️ Eliminar</button>
                 <button id="checkin-close-btn" class="action-btn secondary-btn" style="flex:1; background:#e0e0e0; color:#1a1a2e; border:none; border-radius:7px; font-weight:600; cursor:pointer;">Cerrar</button>

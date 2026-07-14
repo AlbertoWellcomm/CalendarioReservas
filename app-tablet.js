@@ -1627,11 +1627,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 const data = doc.data();
                 const apt = data.apt || '';
+                const aptKey = apt.toLowerCase().replace(/\s+/g, '_');
                 
                 let mossosCode = '';
-                if (apt === 'loft') {
+                if (aptKey === 'loft') {
                     mossosCode = configMossosLoftInput && configMossosLoftInput.value ? configMossosLoftInput.value.trim() : '';
-                } else if (apt === '1st_floor') {
+                } else if (aptKey === '1st_floor') {
                     mossosCode = configMossos1stFloorInput && configMossos1stFloorInput.value ? configMossos1stFloorInput.value.trim() : '';
                 } else {
                     alert('No se pudo determinar el apartamento para esta reserva.');

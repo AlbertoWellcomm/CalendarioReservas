@@ -564,11 +564,11 @@ body {
 .receipt-actions .action-btn:hover {
     background: #2d2d50;
 }
-.receipt-actions .secondary-btn {
+.receipt-modal-box .secondary-btn {
     background: #e0e0e0;
     color: #1a1a2e;
 }
-.receipt-actions .secondary-btn:hover {
+.receipt-modal-box .secondary-btn:hover {
     background: #c8c8c8;
 }
 

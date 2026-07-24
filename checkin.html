@@ -833,10 +833,22 @@
                 const ctx = canvas.getContext('2d');
                 let drawing = false;
                 let isSigned = false;
+                let lastWidth = 0;
 
                 function resizeCanvas() {
-                    const ratio = Math.max(window.devicePixelRatio || 1, 1);
                     const width = canvas.offsetWidth;
+                    // Prevent clearing the canvas if width hasn't changed (e.g., mobile keyboard popping up changes only height)
+                    if (lastWidth === width && canvas.width !== 0) return;
+                    lastWidth = width;
+
+                    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+                    
+                    // Save existing drawing if already signed
+                    let existingImg = null;
+                    if (isSigned && canvas.width > 0) {
+                        existingImg = canvas.toDataURL();
+                    }
+
                     const height = canvas.offsetHeight;
                     canvas.width = width * ratio;
                     canvas.height = height * ratio;
@@ -851,8 +863,17 @@
                     // Clear to white
                     ctx.fillStyle = '#ffffff';
                     ctx.fillRect(0, 0, width, height);
-                    isSigned = false;
-                    updateSigStatus();
+                    
+                    if (existingImg) {
+                        const img = new Image();
+                        img.onload = () => {
+                            ctx.drawImage(img, 0, 0, width, height);
+                        };
+                        img.src = existingImg;
+                    } else {
+                        isSigned = false;
+                        updateSigStatus();
+                    }
                 }
 
                 // Call resize after DOM insertion has settled
